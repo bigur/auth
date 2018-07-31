@@ -154,5 +154,5 @@ class Human(User):
 
     def full_name(self):
         '''Возвращает ИОФ человека в формате `Имя Отчество Фамилия`'''
-        attrs = ('name', 'patronymic', 'surname')
+        attrs = ( 'surname', 'name', 'patronymic')
         return ' '.join([getattr(self, x) for x in attrs if hasattr(self, x)])

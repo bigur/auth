@@ -5,8 +5,6 @@ __licence__ = 'For license information see LICENSE'
 from logging import getLogger
 from time import time
 
-from aio_pika import connect_robust
-from aio_pika.patterns import RPC
 from jwcrypto.jwk import JWK
 from jwcrypto.jwt import JWT
 
@@ -16,44 +14,18 @@ from bigur.auth.role import Role
 from bigur.auth.session import Session
 from bigur.auth.user import User
 
+from .core import Service
+
 
 logger = getLogger('bigur.auth.amql.auth_service')
 
 
-class PermissionDenied(Exception):
-    pass
+class GetToken(Service):
 
+    __roles_cache__ = None
 
-class Connection(object):
-    def __new__(cls, *args, **kwargs):
-        if not getattr(cls, '__instance', None):
-            cls.__instance = object.__new__(cls, *args, **kwargs)
-        return cls.__instance
-
-    def __init__(self):
-        self._connection = None
-
-    async def get_connection(self):
-        if self._connection is None:
-            self._connection = await connect_robust(config.get('auth', 'url'))
-        return self._connection
-
-
-class AuthService(object):
-
-    _roles_cache = None
-
-    async def consume(self):
-        connection = await Connection().get_connection()
-
-        channel = await connection.channel()
-
-        rpc = await RPC.create(channel)
-        await rpc.register(config.get('auth', 'auth_queue'),
-                           self.get_token,
-                           auto_delete=True)
-
-    async def get_token(self, login, password, remote_addr, user_agent):
+    async def call(self, login, password, remote_addr, user_agent,
+                   context=None):
         logger.debug('Запрос токена для пользователя `%s\'', login)
         if not login or not password:
             raise ValueError('логин и пароль не могут быть пустыми')
@@ -75,16 +47,18 @@ class AuthService(object):
 
         header = {'alg': 'HS256'}
 
-        if self._roles_cache is None:
-            self._roles_cache = {}
+        if self.__roles_cache__ is None:
+            self.__roles_cache__ = {}
 
         mask = 0
-        for _id in user.roles:
-            role = self._roles_cache.get(_id)
+        roles = [x['roles'] for x in user.namespaces \
+            if x['namespace'] == user.ns][0]
+        for _id in roles:
+            role = self.__roles_cache__.get(_id)
             if role is None:
                 role = await Role.find_one({'_id': _id})
                 if role is not None:
-                    self._roles_cache[_id] = role
+                    self.__roles_cache__[_id] = role
             if role is not None:
                 mask += role.get('bit', 0)
 
@@ -107,5 +81,5 @@ class AuthService(object):
         refresh_token.make_signed_token(key)
 
         return {'sid': session.id,
-                'access': access_token.serialize(),
-                'refresh': refresh_token.serialize()}
+                'access_token': access_token.serialize(),
+                'refresh_token': refresh_token.serialize()}
