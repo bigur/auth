@@ -28,7 +28,7 @@ setup(
     keywords=['bigur', 'auth'],
 
     # Библиотека
-    packages=['bigur/auth'],
+    packages=['bigur/auth', 'bigur/auth/migration'],
 
     # Файлы настроек
     data_files=[('/etc/bigur', ['conf/auth.conf'])],
