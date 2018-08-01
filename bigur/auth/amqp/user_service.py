@@ -61,13 +61,11 @@ class ChangeNamespace(Service):
     __section__ = 'gql'
 
     async def call(self, ns: str, context: dict):
-        print('in call')
         user = await User.find_one({
             'login': context['user']
         })
 
         ns_ids = [x['namespace'] for x in user.namespaces]
-        print(ns_ids)
         if ns not in ns_ids:
             raise KeyError('запрос на имену запрещённого ns')
 

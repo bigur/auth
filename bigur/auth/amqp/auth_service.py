@@ -33,10 +33,11 @@ class GetToken(Service):
         user = await User.find_one({'login': login})
         if user is None:
             logger.warning('Пользователь с логином `%s\' не найден', login)
-            return
+            raise ValueError('доступ запрещён')
+
         elif not user.verify_password(password):
             logger.warning('Неверный пароль для пользователя `%s\'', login)
-            return
+            raise ValueError('доступ запрещён')
 
         session = await Session(user._id,
                                 remote_addr=remote_addr,
