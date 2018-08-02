@@ -6,7 +6,6 @@ from asyncio import get_event_loop
 
 from bigur.auth import __version__
 from bigur.auth import migration
-from bigur.auth import on_migration, on_startup
 from bigur.auth.amqp import register_services
 from bigur.rx import Observer
 from bigur.store import Migrator, db
