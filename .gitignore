@@ -4,3 +4,6 @@ __pycache__
 
 # Папка egg-info
 /bigur_auth.egg-info
+
+# Кеш mypy
+.mypy_cache
