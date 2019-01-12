@@ -22,7 +22,7 @@ setup(
 
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.7',
     ],
 
     keywords=['bigur', 'auth'],
@@ -33,8 +33,5 @@ setup(
               'bigur/auth/migration'],
 
     # Файлы настроек
-    data_files=[('/etc/bigur', ['conf/auth.conf'])],
-
-    # Скрипт запуска сервера
-    scripts=['bin/authd']
+    data_files=[('/etc/bigur', ['conf/auth.conf'])]
 )
