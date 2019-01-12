@@ -18,7 +18,7 @@ logger = getLogger('bigur.auth.migration.init')
 async def init(db):
     logger.debug('Заполняю базу первоначальным контентом')
 
-    old_db_uri = config.get('migration', 'old_database_uri', fallback=None)
+    old_db_uri = config.get('migration', 'old_database_url', fallback=None)
     if old_db_uri is not None:
         logger.debug('Переношу данные из старой базы')
 

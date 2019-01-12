@@ -1,11 +1,12 @@
 '''Пользователь системы - учётная запись для аутентификации и авторизации.
 Пользователь реализован через два класса:
 
-  * :class:`~bigur.auth.user.User` - обыкновенный пользователь, это может быть
-    учётная запись для другого сервиса
+  * :class:`~bigur.auth.user.User` - обыкновенный пользователь, это может
+    быть учётная запись для другого сервиса.
 
-  * :class:`~bigur.auth.user.Human` - пользователь - физическое лицо, к этому классу
-    добавлены ФИО, а также информация для аутентификации через соцсети'''
+  * :class:`~bigur.auth.user.Human` - пользователь - физическое лицо,
+    к этому классу добавлены ФИО, а также информация для аутентификации
+    через соцсети'''
 
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2018 Business group for development management'
@@ -13,12 +14,21 @@ __licence__ = 'For license information see LICENSE'
 
 from hashlib import sha512
 from logging import getLogger
+from typing import List
 from uuid import uuid4
 
-from bigur.store import Stored
+from bigur.store import Embedded, Stored
+from bigur.store.typing import Id
 
 
 logger = getLogger('bigur.auth.user')
+
+
+class NamespaceInfo(Embedded):
+
+    def __init__(self, ns: Id, roles: List[Id]):
+        self.ns = ns
+        self.roles = roles
 
 
 class User(Stored):

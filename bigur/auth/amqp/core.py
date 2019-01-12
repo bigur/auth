@@ -3,17 +3,24 @@ __copyright__ = '(c) 2016-2018 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
-from pickle import dumps, loads
+from json import dumps, loads, JSONEncoder
 from re import sub
 from time import time
 
 from aio_pika import Message
 from aio_pika import connect_robust
 
-from bigur.utils import config
+from bigur.utils import config, AttrDict
 
 
 logger = getLogger('bigur.auth.amqp.core')
+
+
+class Encoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, AttrDict):
+            return obj.__dict__
+        return JSONEncoder.default(self, obj)
 
 
 class Connection(object):
@@ -67,11 +74,15 @@ class Service(object):
             )
             message_type = 'result'
         except Exception as e:
+            logger.error('Ошибка при выполнении запроса:', exc_info=e)
             message_type = 'error'
-            result = e
+            result = {'error': '{}: {}'.format(type(e).__name__, e)}
 
+        encoded = dumps(result, ensure_ascii=False, cls=Encoder)
+        from pprint import pprint
+        pprint(encoded)
         result_message = Message(
-            dumps(result),
+            dumps(result, ensure_ascii=False, cls=Encoder).encode(),
             delivery_mode=message.delivery_mode,
             correlation_id=message.correlation_id,
             timestamp=time(),

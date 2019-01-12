@@ -7,3 +7,6 @@ __pycache__
 
 # Кеш mypy
 .mypy_cache
+
+# Конфиги для разработчиков
+/conf/*-devel.conf
