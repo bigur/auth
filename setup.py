@@ -6,10 +6,20 @@ __licence__ = 'For license information see LICENSE'
 
 from setuptools import setup
 
+exec( # pylint: disable=W0122
+    compile(
+        open('bigur/auth/version.py', "rb").read(),
+        'bigur/auth/version.py',
+        'exec'
+    ),
+    globals(),
+    locals()
+)
 
 setup(
     name='bigur-auth',
-    version='1.0.1',
+    # pylint: disable=E0602
+    version=__version__, # type: ignore
 
     # Мета-информация
     description='Сервер авторизации',
