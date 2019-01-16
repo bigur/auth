@@ -25,8 +25,11 @@ async def init(db):
         db_name = urlparse(old_db_uri).path.strip('/')
         old_db = AsyncIOMotorClient(old_db_uri)[db_name]
 
+        bit = 0
         async for role in old_db.roles.find():
             role['_class'] = 'bigur.auth.role.Role'
+            role['bit'] = 1 << bit
+            bit += 1
             del role['state']
             await db.roles.insert_one(role)
 
