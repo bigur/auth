@@ -6,9 +6,10 @@ from logging import getLogger
 from urllib.parse import urlparse
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from bigur.auth import __version__
 from bigur.store.migrator import transition
 from bigur.utils import config
+
+from bigur.auth.version import __version__
 
 
 logger = getLogger('bigur.auth.migration.init')
@@ -65,5 +66,3 @@ async def init(db):
             del user['permissions']
             del user['state']
             await db.users.insert_one(user)
-
-
