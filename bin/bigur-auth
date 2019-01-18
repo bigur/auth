@@ -4,7 +4,7 @@ from argparse import SUPPRESS
 from asyncio import get_event_loop
 from logging import getLogger, StreamHandler, DEBUG, INFO, WARNING, ERROR
 
-from aiohttp.web import Application, get, run_app
+from aiohttp.web import Application, run_app, view
 from aiohttp_jinja2 import setup as jinja_setup
 from jinja2 import FileSystemLoader
 from bigur.store import Migrator, db
@@ -12,7 +12,9 @@ from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
 from bigur.auth import migration
-from bigur.auth.handlers import AuthorizeHandler, RootHandler
+from bigur.auth.handlers import OwnerPasswordHandler, RootHandler, LoginFormHandler
+from bigur.auth.oidc_validator import OIDCValidator
+from bigur.auth.server import Server
 from bigur.auth.version import __version__
 
 
@@ -62,17 +64,25 @@ getLogger().addHandler(handler)
 loop = get_event_loop()
 loop.run_until_complete(Migrator('auth', __version__).on_next(db))
 
-# Создаём сервер аутентификации
-server = object()
 
 # Устанавливаем веб-сервер
 app = Application()
 
+
+# Создаём сервер аутентификации
+validator = OIDCValidator()
+app['server'] = Server(validator)
+
+
+# Добавляем маршруты
 app.add_routes([
-    get('/', RootHandler),
-    get('/authorize', AuthorizeHandler)
+    view('/', RootHandler),
+    view('/sign-in', LoginFormHandler),
+    view('/token', OwnerPasswordHandler),
 ])
 
+
+# Инициализируем движок шаблонов
 templates = config.get('auth', 'templates',
                        fallback='/usr/share/bigur/auth/templates')
 jinja_setup(app, loader=FileSystemLoader(templates))

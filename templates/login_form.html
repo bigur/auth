@@ -1,5 +1,11 @@
 <html>
     <body>
-        Hello, html world!
+        <p>Please enter username and password!</p>
+        <form action="/token" method="POST">
+            <input type="text" name="username">
+            <input type="password" name="password">
+            <input type="submit" value="submit">
+            <input type="hidden" name="grant_type" value="password">
+        </form>
     </body>
 </html>
