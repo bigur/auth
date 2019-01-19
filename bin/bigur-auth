@@ -12,7 +12,7 @@ from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
 from bigur.auth import migration
-from bigur.auth.handlers import OwnerPasswordHandler, RootHandler, LoginFormHandler
+from bigur.auth.handlers import AuthorizationHandler, RootHandler, LoginFormHandler
 from bigur.auth.oidc_validator import OIDCValidator
 from bigur.auth.server import Server
 from bigur.auth.version import __version__
@@ -78,7 +78,7 @@ app['server'] = Server(validator)
 app.add_routes([
     view('/', RootHandler),
     view('/sign-in', LoginFormHandler),
-    view('/token', OwnerPasswordHandler),
+    view('/authorize', AuthorizationHandler),
 ])
 
 
