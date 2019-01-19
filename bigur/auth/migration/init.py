@@ -48,7 +48,11 @@ async def init(db):
             del namespace['state']
             await db.namespaces.insert_one(namespace)
 
+        gik = None
         async for user in old_db.users.find():
+            if user['login'] == 'gik@bigur.ru':
+                gik = user
+
             if user['_class'] == 'office.user.Human':
                 user['_class'] = 'bigur.auth.user.Human'
             else:
@@ -66,3 +70,11 @@ async def init(db):
             del user['permissions']
             del user['state']
             await db.users.insert_one(user)
+
+        assert gik is not None
+        await db.clients.insert_one({
+            '_id': '34833d5e-7e17-4f76-a489-5f1d8530f55f',
+            'title': 'Веб-приложение bigur.com',
+            'user_id': gik['_id'],
+            'grant_type': 'implicit',
+        })
