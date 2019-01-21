@@ -14,21 +14,13 @@ __licence__ = 'For license information see LICENSE'
 
 from hashlib import sha512
 from logging import getLogger
-from typing import List
+from typing import Optional
 from uuid import uuid4
 
-from bigur.store import Embedded, Stored
-from bigur.store.typing import Id
+from bigur.store import Stored
 
 
-logger = getLogger('bigur.auth.user')
-
-
-class NamespaceInfo(Embedded):
-
-    def __init__(self, ns: Id, roles: List[Id]):
-        self.ns = ns
-        self.roles = roles
+logger = getLogger('bigur.auth.model.user')
 
 
 class User(Stored):
@@ -40,66 +32,31 @@ class User(Stored):
                           '_salt':  'salt'},
     }
 
-    def __init__(self, ns, login, password=None, namespaces=None,
-                 settings=None):
-        ''':param str ns: идентификатор текущего пространства имён
-        :param str login: имя пользователя
-        :param str password: пароль
-        :param list namespaces: информация о разрешённых для данного
-            пользователя пространтствах имён, необходимо для учётных
-            записей, поддерживающих нескольких клиентов. Каждый элемент
-            списка - это :class:`dict` следующего формата:
-            ``{'namespace': ns, 'roles': [role1, role2, ...]}``, где ``ns`` и
-            ``roleX`` - идентификаторы соответствующих объектов.
-        :param dict settings: настройки пользователя, ключи данных должны быть
-            строкамии, а значения должны иметь элементарный тип, легко
-            кодируемый в JSON.'''
-
-        #: Идентификатор текущего пространства имён пользователя.
-        self.ns = ns
-
-        if namespaces is None:
-            namespaces = [{
-                'namespace': ns,
-            }]
-        assert isinstance(namespaces, list), 'namespaces должен быть списком'
-        #: Список пространств имён, которые доступны пользователю.
-        #: Это список :class:`list` словарей :class:`dict` с записями
-        #: следующего вида::
-        #:
-        #:  {'namespace': ns, 'roles': [role1, role2...]}
-        #:
-        #: Где `ns` и ``roleX`` - идентификаторы (:class:`str`). Если роли
-        #: не установлены, то ``roles``` отсутствует.
-        self.namespaces = namespaces
+    def __init__(self, username: str, password: Optional[str] = None):
+        ''':param str username: имя пользователя
+        :param str password: пароль'''
 
         #: Логин пользователя.
-        self.login = login
+        self.username = username
 
         if password is not None:
             self.set_password(password)
 
-        if settings is not None:
-            #: Настройки пользователя. Это :class:`dict`, ключи которого
-            #: являются строками, а значения элементарного типа, легко
-            #: трансформирующегося в JSON.
-            self.settings = settings
-
         super().__init__()
 
     @staticmethod
-    def _get_hash(salt, password):
+    def _get_hash(salt: str, password: str):
         string = (password + salt).encode('utf-8')
         return sha512(string).hexdigest()
 
-    def set_password(self, password):
+    def set_password(self, password: str):
         '''Устанавливает новый пароль пользователя.
 
         :param str password: пароль пользователя'''
         self._salt = uuid4().hex
         self._crypt = self._get_hash(self._salt, password)
 
-    def verify_password(self, password):
+    def verify_password(self, password: str):
         '''Проверяет пароль пользователя. Возвращает ``True``, если пароль
         верный, иначе возвращает ``False``.
 
@@ -114,55 +71,36 @@ class User(Stored):
 class Human(User):
     '''Пользователь-физическое лицо.'''
 
-    def __init__(self, ns, login, password=None, namespaces=None,
-                 roles=None, settings=None,
-                 name=None, patronymic=None, surname=None,
-                 social=None):
-        ''':param str ns: идентификатор текущего пространства имён
-        :param str login: имя пользователя
+    def __init__(self,
+                 username: str,
+                 password: Optional[str] = None,
+                 first_name: Optional[str] = None,
+                 patronymic: Optional[str] = None,
+                 last_name: Optional[str] = None):
+        ''':param str username: имя пользователя
         :param str password: пароль
-        :param list namespaces: информация о разрешённых для данного
-            пользователя пространтствах имён, необходимо для учётных
-            записей, поддерживающих нескольких клиентов. Каждый элемент
-            списка - это :class:`dict` следующего формата:
-            ``{'namespace': ns, 'roles': [role1, role2, ...]}``, где ``ns`` и
-            `roleX` - идентификаторы соответствующих объектов.
-        :param dict settings: настройки пользователя, ключи данных должны быть
-            строкамии, а значения должны иметь элементарный тип, легко
-            кодируемый в JSON
-        :param str name: реальное имя человека
+        :param str first_name: реальное имя человека
         :param str patronymic: отчество
-        :param str surname: фамилия
-        :param dict social: информация о социальных сетях, ключ - код
-            социальной сети (``facebook``, ``vk``...), значение -
-            :class:`dict` со специфическими настройками социальной сети'''
-        if name:
+        :param str last_name: фамилия'''
+        if first_name:
             #: Настояще имя человека
-            self.name = name
+            self.first_name = first_name
 
         if patronymic:
             #: Отчество человека
             self.patronymic = patronymic
 
-        if surname:
+        if last_name:
             #: Фамилия человека
-            self.surname = surname
+            self.last_name = last_name
 
-        if social is not None:
-            #: Информация социальных сетей. Это :class:`dict`, ключи которого указывают на
-            #: соответствующую социальную сеть, а значения, в свою очередь, также
-            #: являются :class:`dict` со своими ключами. Ключи социальных сетей:
-            #:
-            #:  * ``vk`` - ВКонтакте.
-            self.social = {}
+        super().__init__(username=username,
+                         password=password)
 
-        super().__init__(ns=ns,
-                         login=login,
-                         password=password,
-                         namespaces=namespaces,
-                         settings=settings)
-
-    def full_name(self):
-        '''Возвращает ИОФ человека в формате `Имя Отчество Фамилия`'''
-        attrs = ( 'surname', 'name', 'patronymic')
-        return ' '.join([getattr(self, x) for x in attrs if hasattr(self, x)])
+    def full_name(self, order=None):
+        '''Возвращает ИОФ человека в формате `Имя Отчество Фамилия`.
+        :param tuple order: порядок следования атрибутов при составлении
+            полного имени.'''
+        if order is None:
+            order = ('last_name', 'first_name', 'patronymic')
+        return ' '.join([getattr(self, x) for x in order if hasattr(self, x)])

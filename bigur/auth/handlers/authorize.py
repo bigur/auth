@@ -7,11 +7,16 @@ from aiohttp.web import Response, View
 from bigur.rx import Subject
 from bigur.rx import operators as op
 
+from bigur.auth.oauth2.rfc6749.validators import validate_client_id
+
 
 class AuthorizationHandler(View):
 
     async def post(self):
-        x = Subject() | op.map(lambda x: 1/0)
+        stream = (
+            Subject()
+            | op.map(validate_client_id)
+        )
 
         response = Response()
 
