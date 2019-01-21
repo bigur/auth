@@ -1,5 +1,5 @@
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
-__copyright__ = '(c) 2016-2018 Business group for development management'
+__copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from aiohttp.web import Response, View
@@ -29,8 +29,8 @@ class AuthorizationHandler(View):
         async def on_completed():
             pass
 
-        await x.subscribe(on_sucess, on_error)
+        await stream.subscribe(on_sucess, on_error)
 
-        await x.on_next(self.request)
+        await stream.on_next(self.request)
 
         return response
