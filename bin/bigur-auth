@@ -11,8 +11,9 @@ from bigur.store import Migrator, db
 from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
-from bigur.auth import migration
-from bigur.auth.handlers import AuthorizationHandler, RootHandler, LoginFormHandler
+from bigur.auth import migration  # noqa: F401
+from bigur.auth.handlers import (AuthorizationHandler, RootHandler,
+                                 LoginFormHandler)
 from bigur.auth.oidc_validator import OIDCValidator
 from bigur.auth.server import Server
 from bigur.auth.version import __version__
