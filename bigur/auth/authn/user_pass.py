@@ -27,7 +27,7 @@ class UserPass(AuthN):
         user = None
         context = {}
 
-        # XXX: check fowrard
+        # XXX: check forward
 
         if request.method == 'POST':
             post = await request.post()
@@ -59,14 +59,21 @@ class UserPass(AuthN):
                                 username))
                         raise HTTPForbidden()
 
+                    # Проверяем пароль
+                    if not user.verify_password(password):
+                        logger.warning(
+                            'Неверный пароль для пользователя {}'.format(
+                                username))
+                        user = None
+                        raise HTTPForbidden()
+
                 except HTTPError as e:
                     context['error'] = str(e)
                     context['error_code'] = e.status_code
 
         if user is None:
-            # Ничего не передают, возвращаем форму ввода логина-пароля
-            response = render_template('login_form.j2', request, context)
-
-            return response
+            # Либо ничего не передают, либо аутентификация не удалась.
+            # Возвращаем форму ввода логина-пароля.
+            return render_template('login_form.j2', request, context)
 
         return user
