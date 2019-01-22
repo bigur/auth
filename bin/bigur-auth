@@ -12,8 +12,7 @@ from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
 from bigur.auth import migration  # noqa: F401
-from bigur.auth.handlers import (AuthorizationHandler, RootHandler,
-                                 LoginFormHandler)
+from bigur.auth.handlers import (AuthorizationHandler, RootHandler)
 from bigur.auth.middlewares import authenticate, rate_limit
 from bigur.auth.version import __version__
 
@@ -72,7 +71,6 @@ app = Application(middlewares=[rate_limit, authenticate])
 # Добавляем маршруты
 app.add_routes([
     view('/', RootHandler),
-    view('/sign-in', LoginFormHandler),
     view('/authorize', AuthorizationHandler),
 ])
 
