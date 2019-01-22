@@ -13,3 +13,6 @@ __pycache__
 
 # Файл .env
 /.env
+
+# Файлы vscode
+/.vscode/tags
