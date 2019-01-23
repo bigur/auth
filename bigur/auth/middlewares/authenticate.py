@@ -2,20 +2,27 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 from logging import getLogger
+from os import urandom
 from time import time
 from typing import Callable, Optional, Union
 
 from aiohttp.web import Response, middleware
-from aiohttp.web_exceptions import HTTPError
 from bigur.store import Stored, UnitOfWork
 from bigur.utils import config
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.modes import CBC
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.backends import default_backend
 
 from bigur.auth.authn import choose_authn
 from bigur.auth.authn.base import AuthN
 
 from bigur.auth.model import User
 
+
+BLOCK_SIZE = 16
 
 logger = getLogger(__name__)
 
@@ -30,38 +37,16 @@ class AuthEvent(Stored):
         super().__init__()
 
 
-def load_cookie_key():
-    key_file = config.get('auth', 'cookie_key_file',
-                          fallback='/etc/bigur/cookie.key')
-
-    try:
-        with open(key_file, 'rb') as fh:
-            key = fh.read()
-
-    except OSError as e:
-        logger.warning('%s', e)
-        need_write = config.getboolean('auth', 'cookie_write_key',
-                                       fallback=False)
-        key = b''
-        if need_write:
-            try:
-                with open(key_file, 'wb') as fh:
-                    fh.write(key)
-            except OSError as e:
-                logger.warning('%s', e)
-    return key
-
-
 @middleware
 async def authenticate(request, handler: Callable) -> Response:
     logger.debug('Запрос %s', request.path)
 
-    # Получаем ключ
-    key: bytes = load_cookie_key()
-
     # Проверяем cookie
     cookie_name: str = config.get('auth', 'cookie_name', fallback='oidc')
     value: Optional[str] = request.cookies.get(cookie_name)
+
+    # Инициализируем криптографию
+    backend = default_backend()
 
     # Cookie установлена, проверяем валидность
     if value:
@@ -94,7 +79,27 @@ async def authenticate(request, handler: Callable) -> Response:
             request['auth_event'] = AuthEvent(result.id)
 
         # Устанавливаем cookie
-        #value=
+        response = Response()
+
+        iv: bytes = urandom(BLOCK_SIZE)
+        cipher = Cipher(AES(request.app['cookie_key']),
+                        CBC(iv),
+                        backend=backend)
+        encryptor = cipher.encryptor()
+
+        msg = result.id
+        encrypted = (encryptor.update(msg.encode('utf-8')) +
+                     encryptor.finalyze())
+        value = urlsafe_b64encode(encrypted + b':' + iv).decode('utf-8')
+
+        cookie_secure: bool = config.getboolean('auth', 'cookie_secure',
+                                                fallback=True)
+        cookie_lifetime: int = config.getint('auth', 'cookie_lifetime',
+                                             fallback=3600)
+        response.set_cookie(cookie_name,
+                            value,
+                            secure=cookie_secure,
+                            httponly=True)
 
     response = await handler(request)
 

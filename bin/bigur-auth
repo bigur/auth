@@ -3,6 +3,7 @@
 from argparse import SUPPRESS
 from asyncio import get_event_loop
 from logging import getLogger, StreamHandler, DEBUG, INFO, WARNING, ERROR
+from os import urandom
 
 from aiohttp.web import Application, run_app, view
 from aiohttp_jinja2 import setup as jinja_setup
@@ -79,6 +80,27 @@ app.add_routes([
 templates = config.get('auth', 'templates',
                        fallback='/usr/share/bigur/auth/templates')
 jinja_setup(app, loader=FileSystemLoader(templates))
+
+# Загружаем ключ для шифрования cookie
+key_file = config.get('auth', 'cookie_key_file',
+                      fallback='/etc/bigur/cookie.key')
+
+try:
+    with open(key_file, 'rb') as fh:
+        key: bytes = fh.read()
+
+except OSError as e:
+    logger.warning('Ошибка чтения ключа, генерирую новый: %s', e)
+    need_write = config.getboolean('auth', 'cookie_write_key',
+                                   fallback=False)
+    key = urandom(32)
+    if need_write:
+        try:
+            with open(key_file, 'wb') as fh:
+                fh.write(key)
+        except OSError as e:
+            logger.warning('Ошибка сохранения ключа: %s', e)
+app['cookie_key'] = key
 
 
 # Запускаем веб-сервер
