@@ -10,3 +10,9 @@ __pycache__
 
 # Конфиги для разработчиков
 /conf/*-devel.conf
+
+# Файл .env
+/.env
+
+# Файлы vscode
+/.vscode/tags
