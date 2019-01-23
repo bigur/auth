@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Запустить сервер",
+            "label": "Run development server",
             "type": "shell",
             "command": "./bin/bigur-auth -c ./conf/auth-devel.conf",
             "presentation": {
