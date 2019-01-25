@@ -6,15 +6,15 @@ from os import environ
 from os.path import dirname, normpath
 
 from aiohttp_jinja2 import setup as jinja_setup
-from aiohttp.web import Application, view
+from aiohttp.web import Application, get, post
 from jinja2 import FileSystemLoader
 from pytest import fixture, mark
 
-from bigur.store import db
+from bigur.store import UnitOfWork, db
 from bigur.utils import config
 
-from bigur.auth.handlers import AuthorizationHandler
-from bigur.auth.middlewares import authenticate
+from bigur.auth.handlers import authorization_handler
+from bigur.auth.model import User, Client
 
 
 @fixture
@@ -27,16 +27,18 @@ from aiohttp.pytest_plugin import aiohttp_client  # noqa: F401
 
 @fixture
 def debug(caplog):
-    '''Отладка тестов.'''
+    '''Enable debug logging in tests.'''
     from logging import DEBUG
     caplog.set_level(DEBUG, logger='bigur.auth')
 
 
-@fixture
+@fixture  # noqa: F811
 def cli(loop, aiohttp_client):
-    app = Application(middlewares=[authenticate])
+    '''Setup aiohttp client'''
+    app = Application()
     app.add_routes([
-        view('/authorize', AuthorizationHandler)
+        get('/authorize', authorization_handler),
+        post('/authorize', authorization_handler),
     ])
 
     templates = normpath(dirname(__file__) + '../../../../templates')
@@ -47,7 +49,7 @@ def cli(loop, aiohttp_client):
 
 @fixture
 async def database():
-    '''Доступ к базе данных.'''
+    '''Database setup.'''
     conf = config.get_object()
     if not conf.has_section('general'):
         conf.add_section('general')
@@ -58,5 +60,21 @@ async def database():
     yield db
 
 
-mark.db_configured = mark.skipif(environ.get('BIGUR_TEST_DB') is None,
-                                 reason='Не настроена база данных')
+mark.db_configured = mark.skipif(
+    environ.get('BIGUR_TEST_DB') is None,
+    reason='Setup BIGUR_TEST_DB env with mongodb URL.')
+
+
+# Entities
+@fixture
+async def user(database):
+    async with UnitOfWork():
+        user = User('admin', '123')
+    yield user
+
+
+@fixture
+async def aclient(database, user):
+    async with UnitOfWork():
+        client = Client('Test web client', user.id, 'password')
+    yield client
