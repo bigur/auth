@@ -4,5 +4,4 @@ __licence__ = 'For license information see LICENSE'
 
 # flake8: noqa
 
-from .authorize import AuthorizationHandler
-from .root import RootHandler
+from .authorize import authorization_handler

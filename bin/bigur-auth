@@ -5,7 +5,7 @@ from asyncio import get_event_loop
 from logging import getLogger, StreamHandler, DEBUG, INFO, WARNING, ERROR
 from os import urandom
 
-from aiohttp.web import Application, run_app, view
+from aiohttp.web import Application, run_app, get, post
 from aiohttp_jinja2 import setup as jinja_setup
 from jinja2 import FileSystemLoader
 from bigur.store import Migrator, db
@@ -13,12 +13,11 @@ from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
 from bigur.auth import migration  # noqa: F401
-from bigur.auth.handlers import (AuthorizationHandler, RootHandler)
-from bigur.auth.middlewares import authenticate, rate_limit
+from bigur.auth.handlers import authorization_handler
 from bigur.auth.version import __version__
 
 
-# Обрабатываем командную строку
+# Setup command line args
 argparser.add_argument('-h', '--help', action='help',
                        default=SUPPRESS,
                        help='вывод подсказки об использовании программы')
@@ -28,7 +27,7 @@ argparser.add_argument('-c', '--config', dest='config', metavar='FILE',
                        help='путь к файлу конфигураци')
 
 
-# Настраиваем логгер
+# Init logger
 logger = getLogger('bigur.auth')
 
 handler = StreamHandler()
@@ -60,28 +59,28 @@ else:
 getLogger().addHandler(handler)
 
 
-# Запускаем миграцию
+# Run database migration
 loop = get_event_loop()
 loop.run_until_complete(Migrator('auth', __version__).on_next(db))
 
 
-# Устанавливаем веб-сервер
-app = Application(middlewares=[rate_limit, authenticate])
+# Create web server
+app = Application()
 
 
-# Добавляем маршруты
+# Setup routing
 app.add_routes([
-    view('/', RootHandler),
-    view('/authorize', AuthorizationHandler),
+    get('/authorize', authorization_handler),
+    post('/authorize', authorization_handler),
 ])
 
 
-# Инициализируем движок шаблонов
+# Initialize template engine
 templates = config.get('auth', 'templates',
                        fallback='/usr/share/bigur/auth/templates')
 jinja_setup(app, loader=FileSystemLoader(templates))
 
-# Загружаем ключ для шифрования cookie
+# Load/generate cookie crypt key
 key_file = config.get('auth', 'cookie_key_file',
                       fallback='/etc/bigur/cookie.key')
 
@@ -103,12 +102,13 @@ except OSError as e:
 app['cookie_key'] = key
 
 
-# Запускаем веб-сервер
+# Start web-server
 bind_host = config.get('api', 'http_bind_host', fallback='localhost')
 try:
     bind_port = config.getint('api', 'http_bind_port', fallback=8889)
 except ValueError:
     bind_port = 8889
 
-logger.info('Сервер авторизации запущен на %s:%s', bind_host, bind_port)
+logger.info('Bigur OpenID/OAuth2 server started at %s:%s',
+            bind_host, bind_port)
 run_app(app, host=bind_host, port=bind_port, print=lambda x: None)
