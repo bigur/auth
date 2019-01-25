@@ -79,7 +79,7 @@ async def authenticate(request, handler: Callable) -> Response:
             request['auth_event'] = AuthEvent(result.id)
 
         # Устанавливаем cookie
-        response = Response()
+        response = Response(text='ok')
 
         iv: bytes = urandom(BLOCK_SIZE)
         cipher = Cipher(AES(request.app['cookie_key']),
@@ -88,18 +88,23 @@ async def authenticate(request, handler: Callable) -> Response:
         encryptor = cipher.encryptor()
 
         msg = result.id
-        encrypted = (encryptor.update(msg.encode('utf-8')) +
-                     encryptor.finalyze())
+        encrypted = encryptor.update(msg.encode('utf-8'))
         value = urlsafe_b64encode(encrypted + b':' + iv).decode('utf-8')
 
-        cookie_secure: bool = config.getboolean('auth', 'cookie_secure',
-                                                fallback=True)
         cookie_lifetime: int = config.getint('auth', 'cookie_lifetime',
                                              fallback=3600)
+
+        if config.getboolean('auth', 'cookie_secure', fallback=True):
+            cookie_secure: Optional[str] = 'yes'
+        else:
+            cookie_secure = None
+
         response.set_cookie(cookie_name,
                             value,
+                            max_age=cookie_lifetime,
                             secure=cookie_secure,
-                            httponly=True)
+                            httponly='yes')
+        return response
 
     response = await handler(request)
 
