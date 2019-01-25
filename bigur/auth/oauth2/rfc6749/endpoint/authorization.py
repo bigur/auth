@@ -2,20 +2,31 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
+from dataclasses import dataclass
 from logging import getLogger
-from typing import List, TypeVar
+from typing import List, Optional
 
-from bigur.rx import Subject, Observer, operators as op
+from aiohttp.web import Request
 
-from bigur.auth.oauth2.rfc6749.validators import validate_client_id
-
-
-logger = getLogger('bigur.auth.oauth2.rfc6749.endpoint.authorization')
+from bigur.auth.oauth2.rfc6749.errors import InvalidRequest
+from bigur.auth.oauth2.rfc6749.request import OAuth2Request
 
 
-T_in = TypeVar('T_in')
-T_out = TypeVar('T_out')
+logger = getLogger(__name__)
 
 
-class AuthorizationEndpoint(Subject):
-    def __init__(self)
+@dataclass
+class AuthorizationRequest(OAuth2Request):
+    pass
+
+
+async def create_oauth2_request(http_request: Request):
+    logger.debug('Creating request from POST method')
+    # XXX: ignore unneeded parameters
+    try:
+        http_request['oauth2_request'] = AuthorizationRequest(
+            **(await http_request.post()))
+    except TypeError as e:
+        raise InvalidRequest(str(e)[11:])
+    else:
+        return http_request
