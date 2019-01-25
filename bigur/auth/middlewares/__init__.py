@@ -5,4 +5,3 @@ __licence__ = 'For license information see LICENSE'
 # flake8: noqa
 
 from .authenticate import authenticate
-from .rate_limit import rate_limit
