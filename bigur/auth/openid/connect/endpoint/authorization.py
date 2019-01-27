@@ -12,7 +12,6 @@ from bigur.auth.oauth2.rfc6749.endpoint.authorization import (
     AuthorizationRequest as OAuth2AuthorizationRequest)
 from bigur.auth.oauth2.rfc6749.request import create_request
 
-
 logger = getLogger(__name__)
 
 
@@ -26,6 +25,9 @@ class AuthorizationRequest(OAuth2AuthorizationRequest):
     response_mode: Optional[str] = None
     nonce: Optional[str] = None
     display: Optional[str] = None
+
+    def __post_init__(self):
+        self.response_type = [x.strip() for x in self.response_type.split(' ')]
 
 
 async def create_oidc_request(http_request: Request):
