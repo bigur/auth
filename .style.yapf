@@ -1,0 +1,5 @@
+[style]
+based_on_style = chromium
+indent_width = 4
+allow_multiline_lambdas = true
+split_before_bitwise_operator = true
