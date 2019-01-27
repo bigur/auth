@@ -4,50 +4,118 @@ __licence__ = 'For license information see LICENSE'
 
 from pytest import mark
 
+# TODO: return state when error response
+# TODO: test response mode: normal and error
+
 
 class TestOIDCAuthorizationEndpoint(object):
     '''Tests for authorization endpoint'''
 
     @mark.db_configured
     @mark.asyncio
-    async def test_no_scope_in_request(self, cli):
-        response = await cli.post('/authorize', data={
-            'client_id': 'incorrect',
-            'response_type': 'token_id',
-            'redirect_uri': 'https://localhost/',
-        })
-
+    async def test_scope_required(self, cli):
+        response = await cli.post(
+            '/authorize',
+            data={
+                'client_id': 'someid',
+                'response_type': 'token_id',
+                'redirect_uri': 'https://localhost/',
+            })
         assert response.status == 400
         assert response.content_type == 'text/plain'
-        assert (await response.text() ==
-                '400: Missing 1 required argument: \'scope\'')
+        assert await response.text() == (
+            '400: Missing 1 required argument: \'scope\'')
+
+    @mark.db_configured
+    @mark.asyncio
+    async def test_client_id_required(self, cli):
+        response = await cli.post(
+            '/authorize',
+            data={
+                'scope': 'openid',
+                'response_type': 'token_id',
+                'redirect_uri': 'https://localhost/',
+            })
+        assert response.status == 400
+        assert response.content_type == 'text/plain'
+        assert await response.text() == (
+            '400: Missing 1 required argument: \'client_id\'')
+
+    @mark.db_configured
+    @mark.asyncio
+    async def test_response_type_required(self, cli):
+        response = await cli.post(
+            '/authorize',
+            data={
+                'client_id': 'someid',
+                'scope': 'openid',
+                'redirect_uri': 'https://localhost/',
+            })
+        assert response.status == 400
+        assert response.content_type == 'text/plain'
+        assert await response.text() == (
+            '400: Missing 1 required argument: \'response_type\'')
+
+    @mark.db_configured
+    @mark.asyncio
+    async def test_redirect_uri_required(self, cli):
+        response = await cli.post(
+            '/authorize',
+            data={
+                'client_id': 'someid',
+                'response_type': 'token_id',
+                'scope': 'openid',
+            })
+        assert response.status == 400
+        assert response.content_type == 'text/plain'
+        assert await response.text() == (
+            '400: Missing 1 required argument: \'redirect_uri\'')
+
+    @mark.db_configured
+    @mark.asyncio
+    async def test_get_token_id(self, cli, debug):
+        response = await cli.post(
+            '/authorize',
+            data={
+                'client_id': 'incorrect',
+                'scope': 'openid',
+                'response_type': 'token_id',
+                'redirect_uri': 'https://localhost/feedback?a=1',
+            },
+            allow_redirects=False)
+
+        assert response.status == 200
+        assert False, 'test is not ready'
 
     @mark.db_configured
     @mark.asyncio
     async def test_ignore_other_params(self, cli, debug):
-        response = await cli.post('/authorize', data={
-            'client_id': 'incorrect',
-            'scope': 'openid',
-            'response_type': 'token_id',
-            'redirect_uri': 'https://localhost/',
-            'other': 'must_be_ignored'
-        })
+        response = await cli.post(
+            '/authorize',
+            data={
+                'client_id': 'incorrect',
+                'scope': 'openid',
+                'response_type': 'token_id',
+                'redirect_uri': 'https://localhost/feedback?a=1',
+                'other': 'must_be_ignored'
+            },
+            allow_redirects=False)
 
         assert response.status == 200
-        assert response.content_type == 'text/plain'
-        assert (await response.text() ==
-                '400: Missing 1 required argument: \'scope\'')
-
+        assert False, 'test is not ready'
 
     @mark.db_configured
     @mark.asyncio
     async def test_incorrect_client_id(self, cli, debug):
-        response = await cli.post('/authorize', data={
-            'scope': 'openid',
-            'client_id': 'incorrect',
-            'response_type': 'token_id',
-            'redirect_uri': 'https://localhost/',
-        })
+        response = await cli.post(
+            '/authorize',
+            data={
+                'scope': 'openid',
+                'client_id': 'incorrect',
+                'response_type': 'token_id',
+                'redirect_uri': 'https://localhost/',
+            },
+            allow_redirects=False)
 
         assert response.status == 400
         assert response.content_type == 'text/plain; charset=utf-8'
