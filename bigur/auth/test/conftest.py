@@ -2,7 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from os import environ
+from os import environ, urandom
 from os.path import dirname, normpath
 
 from aiohttp_jinja2 import setup as jinja_setup
@@ -13,7 +13,7 @@ from pytest import fixture, mark
 from bigur.store import UnitOfWork, db
 from bigur.utils import config
 
-from bigur.auth.handlers import authorization_handler
+from bigur.auth.handlers import authorization_handler, user_pass_handler
 from bigur.auth.model import User, Client
 
 
@@ -32,14 +32,22 @@ def debug(caplog):
     caplog.set_level(DEBUG, logger='bigur.auth')
 
 
+@fixture
+def app():
+    return Application()
+
+
 @fixture  # noqa: F811
-def cli(loop, aiohttp_client):
+def cli(loop, app, aiohttp_client):
     '''Setup aiohttp client'''
-    app = Application()
     app.add_routes([
-        get('/authorize', authorization_handler),
-        post('/authorize', authorization_handler),
+        get('/auth/login', user_pass_handler),
+        post('/auth/login', user_pass_handler),
+        get('/auth/authorize', authorization_handler),
+        post('/auth/authorize', authorization_handler),
     ])
+
+    app['cookie_key'] = urandom(32)
 
     templates = normpath(dirname(__file__) + '../../../../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
