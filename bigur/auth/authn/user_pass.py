@@ -32,16 +32,16 @@ class UserPass(AuthN):
         # First check existing cookie, if it valid - pass
         cookie_name: str = config.get(
             'user_pass', 'cookie_name', fallback='oidc')
-        cookie = http_request.cookies.get(cookie_name)
+        value = http_request.cookies.get(cookie_name)
 
         # Check cookie
-        if cookie:
-            logger.debug('Found cookie %s', cookie.value)
+        if value:
+            logger.debug('Found cookie %s', value)
 
             # Initialize crypt backend
             backend = default_backend()
 
-            iv, data = urlsafe_b64decode(cookie.value).split(b':', maxsplit=1)
+            iv, data = urlsafe_b64decode(value).split(b':', maxsplit=1)
 
             cipher = Cipher(
                 AES(http_request.app['cookie_key']), CBC(iv), backend=backend)
@@ -57,7 +57,7 @@ class UserPass(AuthN):
 
         # If no valid cookie, try to authenticate via username/password
         # parameters.
-        if cookie is None:
+        if value is None:
             logger.debug('Cookie is not set, redirecting to login form')
             if http_request.method == 'GET':
                 params = http_request.query.copy()
