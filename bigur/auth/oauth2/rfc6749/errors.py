@@ -2,6 +2,9 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
+from typing import Dict, Optional
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+
 from aiohttp.web import Request
 
 
@@ -36,8 +39,47 @@ class ParameterRequired(OAuth2FatalError):
 class OAuth2RedirectError(OAuth2Error):
     '''This kind of exceptions should be return to user
     via redirection after `redirect_uri` check.'''
+    error_code: Optional[str]
 
-    error_code: str
+    def __init__(self,
+                 reason: str,
+                 http_request: Request,
+                 redirect_uri: Optional[str] = None,
+                 params: Optional[Dict[str, str]] = None):
+        self.redirect_uri = redirect_uri
+        self.params = params
+        super().__init__(reason, http_request)
+
+    @property
+    def location(self):
+        http_request = self.http_request
+        redirect_uri = self.redirect_uri
+        if redirect_uri is None:
+            redirect_uri = http_request['oauth2_request'].redirect_uri
+
+        parts = urlparse(redirect_uri)
+
+        query = parse_qs(parts.query)
+
+        params = self.params
+
+        if params is None:
+            if self.error_code:
+                params['error'] = [self.error_code]
+                params['error_description'] = [str(self)]
+
+            if 'oauth2_request' in http_request and (
+                    http_request['oauth2_request'].state is not None):
+                params['state'] = [http_request['oauth2_request'].state]
+
+        query.update(params)
+
+        return urlunparse((parts.scheme, parts.netloc, parts.path, parts.params,
+                           urlencode(query, doseq=True), parts.fragment))
+
+
+class UserNotAuthenticated(OAuth2RedirectError):
+    error_code = None
 
 
 class InvalidRequest(OAuth2RedirectError):
