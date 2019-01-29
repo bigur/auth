@@ -3,6 +3,7 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from pytest import mark
+from urllib.parse import urlparse, parse_qs
 
 # TODO: return state when error response
 # TODO: test response mode: normal and error
@@ -15,7 +16,7 @@ class TestOIDCAuthorizationEndpoint(object):
     @mark.asyncio
     async def test_scope_required(self, cli):
         response = await cli.post(
-            '/authorize',
+            '/auth/authorize',
             data={
                 'client_id': 'someid',
                 'response_type': 'token_id',
@@ -30,7 +31,7 @@ class TestOIDCAuthorizationEndpoint(object):
     @mark.asyncio
     async def test_client_id_required(self, cli):
         response = await cli.post(
-            '/authorize',
+            '/auth/authorize',
             data={
                 'scope': 'openid',
                 'response_type': 'token_id',
@@ -45,7 +46,7 @@ class TestOIDCAuthorizationEndpoint(object):
     @mark.asyncio
     async def test_response_type_required(self, cli):
         response = await cli.post(
-            '/authorize',
+            '/auth/authorize',
             data={
                 'client_id': 'someid',
                 'scope': 'openid',
@@ -60,7 +61,7 @@ class TestOIDCAuthorizationEndpoint(object):
     @mark.asyncio
     async def test_redirect_uri_required(self, cli):
         response = await cli.post(
-            '/authorize',
+            '/auth/authorize',
             data={
                 'client_id': 'someid',
                 'response_type': 'token_id',
@@ -73,9 +74,37 @@ class TestOIDCAuthorizationEndpoint(object):
 
     @mark.db_configured
     @mark.asyncio
-    async def test_get_token_id(self, cli, debug):
+    async def test_redirect_to_login_form(self, cli, debug):
         response = await cli.post(
-            '/authorize',
+            '/auth/authorize',
+            data={
+                'client_id': 'first',
+                'scope': 'openid',
+                'response_type': 'token_id',
+                'redirect_uri': 'https://localhost/feedback?a=1',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+
+        parts = urlparse(response.headers['Location'])
+
+        assert parts.path == '/auth/login'
+
+        query = parse_qs(parts.query)
+        assert query == {
+            'client_id': ['first'],
+            'scope': ['openid'],
+            'response_type': ['token_id'],
+            'redirect_uri': ['https://localhost/feedback?a=1'],
+            'next': ['/auth/authorize']
+        }
+
+    @mark.db_configured
+    @mark.asyncio
+    async def test_get_token_id(self, cli, login, debug):
+        response = await cli.post(
+            '/auth/authorize',
             data={
                 'client_id': 'incorrect',
                 'scope': 'openid',
@@ -91,7 +120,7 @@ class TestOIDCAuthorizationEndpoint(object):
     @mark.asyncio
     async def test_ignore_other_params(self, cli, debug):
         response = await cli.post(
-            '/authorize',
+            '/auth/authorize',
             data={
                 'client_id': 'incorrect',
                 'scope': 'openid',
@@ -108,7 +137,7 @@ class TestOIDCAuthorizationEndpoint(object):
     @mark.asyncio
     async def test_incorrect_client_id(self, cli, debug):
         response = await cli.post(
-            '/authorize',
+            '/auth/authorize',
             data={
                 'scope': 'openid',
                 'client_id': 'incorrect',
