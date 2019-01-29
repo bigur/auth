@@ -5,8 +5,9 @@ __licence__ = 'For license information see LICENSE'
 from os import environ, urandom
 from os.path import dirname, normpath
 
-from aiohttp_jinja2 import setup as jinja_setup
+from aiohttp import CookieJar
 from aiohttp.web import Application, get, post
+from aiohttp_jinja2 import setup as jinja_setup
 from jinja2 import FileSystemLoader
 from pytest import fixture, mark
 
@@ -34,30 +35,35 @@ def debug(caplog):
 
 @fixture
 def app():
-    return Application()
-
-
-@fixture  # noqa: F811
-def cli(loop, app, aiohttp_client):
-    '''Setup aiohttp client'''
+    app = Application()
     app.add_routes([
         get('/auth/login', user_pass_handler),
         post('/auth/login', user_pass_handler),
         get('/auth/authorize', authorization_handler),
         post('/auth/authorize', authorization_handler),
     ])
-
     app['cookie_key'] = urandom(32)
-
+    conf = config.get_object()
+    if not conf.has_section('user_pass'):
+        conf.add_section('user_pass')
+    conf.set('user_pass', 'cookie_secure', 'false')
     templates = normpath(dirname(__file__) + '../../../../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
+    return app
 
-    return loop.run_until_complete(aiohttp_client(app))
+
+@fixture
+async def cookie_jar():
+    yield CookieJar(unsafe=True)
+
+
+@fixture  # noqa: F811
+def cli(loop, app, cookie_jar, aiohttp_client):
+    return loop.run_until_complete(aiohttp_client(app, cookie_jar=cookie_jar))
 
 
 @fixture
 async def database():
-    '''Database setup.'''
     conf = config.get_object()
     if not conf.has_section('general'):
         conf.add_section('general')
@@ -86,3 +92,15 @@ async def aclient(database, user):
     async with UnitOfWork():
         client = Client('Test web client', user.id, 'password')
     yield client
+
+
+@fixture
+async def login(database, user, cli):
+    response = await cli.post(
+        '/auth/login',
+        data={
+            'username': 'admin',
+            'password': '123',
+        },
+        allow_redirects=False)
+    yield response
