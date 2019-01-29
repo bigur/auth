@@ -2,78 +2,77 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
+from base64 import urlsafe_b64decode
 from logging import getLogger
 
-from aiohttp_jinja2 import render_template
-from aiohttp.web_exceptions import HTTPError, HTTPBadRequest, HTTPForbidden
+from aiohttp.web import Request
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.modes import CBC
+from cryptography.hazmat.primitives.ciphers import Cipher
+
+from bigur.utils import config
 
 from bigur.auth.authn.base import AuthN
 from bigur.auth.model import User
-
+from bigur.auth.oauth2.rfc6749.errors import UserNotAuthenticated
 
 logger = getLogger(__name__)
 
+BLOCK_SIZE = 16
 FIELD_LENGHT = 128
 
 
 class UserPass(AuthN):
-    '''Авторизация по логину и паролю'''
+    '''End-user login & password authentication'''
 
-    def __init__(self, verify_uri: str = '/login'):
-        self.verify_uri = verify_uri
-        super().__init__()
+    async def authenticate(self, http_request: Request) -> User:
 
-    async def verify(self, request):
-        user = None
-        context = {}
+        # First check existing cookie, if it valid - pass
+        cookie_name: str = config.get(
+            'user_pass', 'cookie_name', fallback='oidc')
+        cookie = http_request.cookies.get(cookie_name)
 
-        # XXX: check forward
+        # Check cookie
+        if cookie:
+            logger.debug('Found cookie %s', cookie.value)
 
-        if request.method == 'POST':
-            post = await request.post()
+            # Initialize crypt backend
+            backend = default_backend()
 
-            if (request.path == self.verify_uri and
-                    'username' in post and
-                    'password' in post):
+            iv, data = urlsafe_b64decode(cookie.value).split(b':', maxsplit=1)
 
-                try:
-                    # Проверяем входящие параметры
-                    username = post['username']
-                    password = post['password']
+            cipher = Cipher(
+                AES(http_request.app['cookie_key']), CBC(iv), backend=backend)
+            decryptor = cipher.decryptor()
+            padded = decryptor.update(data) + decryptor.finalize()
+            unpadder = padding.PKCS7(BLOCK_SIZE * 8).unpadder()
+            username = unpadder.update(padded) + unpadder.finalize()
 
-                    if (not isinstance(username, str) or
-                            not isinstance(password, str)):
-                        raise HTTPBadRequest()
+            http_request['oauth2_request']['user'] = username
 
-                    if (len(username) > FIELD_LENGHT or
-                            len(password) > FIELD_LENGHT):
-                        raise HTTPBadRequest()
+            # XXX: Check cookie is not expired
+            # XXX: Remove cookie if expired
 
-                    # Находим пользователя
-                    logger.debug('Выполняем аутентификацию для %s', username)
+        # If no valid cookie, try to authenticate via username/password
+        # parameters.
+        if cookie is None:
+            logger.debug('Cookie is not set, redirecting to login form')
+            if http_request.method == 'GET':
+                params = http_request.query.copy()
+            elif http_request.method == 'POST':
+                params = (await http_request.post()).copy()
+            else:
+                raise ValueError('Unsupported http method: %s',
+                                 http_request.method)
+            params['next'] = http_request.path
+            redirect_uri = config.get(
+                'user_pass', 'login_endpoint', fallback='/auth/login')
+            raise UserNotAuthenticated(
+                'Authentication required',
+                http_request,
+                redirect_uri=redirect_uri,
+                params=params)
 
-                    user = await User.find_one({'username': username})
-                    if user is None:
-                        logger.warning(
-                            'Пользователь с логином {} не найден'.format(
-                                username))
-                        raise HTTPForbidden()
-
-                    # Проверяем пароль
-                    if not user.verify_password(password):
-                        logger.warning(
-                            'Неверный пароль для пользователя {}'.format(
-                                username))
-                        user = None
-                        raise HTTPForbidden()
-
-                except HTTPError as e:
-                    context['error'] = str(e)
-                    context['error_code'] = e.status_code
-
-        if user is None:
-            # Либо ничего не передают, либо аутентификация не удалась.
-            # Возвращаем форму ввода логина-пароля.
-            return render_template('login_form.j2', request, context)
-
-        return user
+        return http_request

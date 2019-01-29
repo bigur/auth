@@ -5,3 +5,4 @@ __licence__ = 'For license information see LICENSE'
 # flake8: noqa
 
 from .authorize import authorization_handler
+from .user_pass import user_pass_handler

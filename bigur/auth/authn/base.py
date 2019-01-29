@@ -6,14 +6,12 @@ from logging import getLogger
 
 from aiohttp.web import Request
 
+from bigur.auth.model import User
 
 logger = getLogger(__name__)
 
 
 class AuthN:
-    pass
 
-
-async def authenticate_resource_owner(http_request: Request):
-    logger.warning('authenticate_resource_owner() stub')
-    return http_request
+    async def authenticate(self, http_request: Request) -> User:
+        raise NotImplementedError
