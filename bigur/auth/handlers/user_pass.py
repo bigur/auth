@@ -93,11 +93,11 @@ async def user_pass_handler(http_request: Request):
                     value = urlsafe_b64encode(iv + b':' + data).decode('utf-8')
 
                     cookie_name: str = config.get(
-                        'auth', 'cookie_name', fallback='oidc')
+                        'user_pass', 'cookie_name', fallback='oidc')
                     cookie_lifetime: int = config.getint(
-                        'auth', 'cookie_lifetime', fallback=3600)
+                        'user_pass', 'cookie_lifetime', fallback=3600)
                     if config.getboolean(
-                            'auth', 'cookie_secure', fallback=True):
+                            'user_pass', 'cookie_secure', fallback=True):
                         cookie_secure: Optional[str] = 'yes'
                     else:
                         cookie_secure = None
