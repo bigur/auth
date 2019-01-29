@@ -13,19 +13,20 @@ from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
 from bigur.auth import migration  # noqa: F401
-from bigur.auth.handlers import authorization_handler
+from bigur.auth.handlers import (authorization_handler, user_pass_handler)
 from bigur.auth.version import __version__
 
-
 # Setup command line args
-argparser.add_argument('-h', '--help', action='help',
-                       default=SUPPRESS,
-                       help='вывод подсказки об использовании программы')
+argparser.add_argument(
+    '-h', '--help', action='help', default=SUPPRESS, help='show program usage')
 
-argparser.add_argument('-c', '--config', dest='config', metavar='FILE',
-                       default='/etc/bigur/auth.conf',
-                       help='путь к файлу конфигураци')
-
+argparser.add_argument(
+    '-c',
+    '--config',
+    dest='config',
+    metavar='FILE',
+    default='/etc/bigur/auth.conf',
+    help='config file path')
 
 # Init logger
 logger = getLogger('bigur.auth')
@@ -36,10 +37,11 @@ frmt = config.get('general', 'log_format', fallback='stdout').lower()
 if frmt == 'journal':
     handler.setFormatter(BigurFormatter(fmt='{message}', namelen=40))
 else:
-    handler.setFormatter(BigurFormatter(
-        fmt='{color} [{levelname:1.1} {name}:{lineno:d}]{end_color} {message}',
-        namelen=40
-    ))
+    handler.setFormatter(
+        BigurFormatter(
+            fmt='{color} [{levelname:1.1} {name}:{lineno:d}]{end_color}'
+            ' {message}',
+            namelen=40))
 
 verbosity = config.get('general', 'log_verbosity', fallback='debug').lower()
 if verbosity == 'error':
@@ -58,57 +60,52 @@ else:
 
 getLogger().addHandler(handler)
 
-
 # Run database migration
 loop = get_event_loop()
 loop.run_until_complete(Migrator('auth', __version__).on_next(db))
 
-
 # Create web server
 app = Application()
 
-
 # Setup routing
 app.add_routes([
-    get('/authorize', authorization_handler),
-    post('/authorize', authorization_handler),
+    get(config.get('user_pass', 'login_endpoint'), user_pass_handler),
+    get(config.get('authorization', 'endpoint'), authorization_handler),
+    post(config.get('authorization', 'endpoint'), authorization_handler),
 ])
 
-
 # Initialize template engine
-templates = config.get('auth', 'templates',
-                       fallback='/usr/share/bigur/auth/templates')
+templates = config.get(
+    'auth', 'templates', fallback='/usr/share/bigur/auth/templates')
 jinja_setup(app, loader=FileSystemLoader(templates))
 
 # Load/generate cookie crypt key
-key_file = config.get('auth', 'cookie_key_file',
-                      fallback='/etc/bigur/cookie.key')
+key_file = config.get(
+    'auth', 'cookie_key_file', fallback='/etc/bigur/cookie.key')
 
 try:
     with open(key_file, 'rb') as fh:
         key: bytes = fh.read()
 
 except OSError as e:
-    logger.warning('Ошибка чтения ключа, генерирую новый: %s', e)
-    need_write = config.getboolean('auth', 'cookie_write_key',
-                                   fallback=False)
+    logger.warning('Error while read cookie key: %s', e)
+    need_write = config.getboolean('auth', 'cookie_write_key', fallback=False)
     key = urandom(32)
     if need_write:
         try:
             with open(key_file, 'wb') as fh:
                 fh.write(key)
         except OSError as e:
-            logger.warning('Ошибка сохранения ключа: %s', e)
+            logger.warning('Error while save cookie key file: %s', e)
 app['cookie_key'] = key
 
-
 # Start web-server
-bind_host = config.get('api', 'http_bind_host', fallback='localhost')
+bind_host = config.get('general', 'http_bind_host', fallback='localhost')
 try:
-    bind_port = config.getint('api', 'http_bind_port', fallback=8889)
+    bind_port = config.getint('general', 'http_bind_port', fallback=8889)
 except ValueError:
     bind_port = 8889
 
-logger.info('Bigur OpenID/OAuth2 server started at %s:%s',
-            bind_host, bind_port)
+logger.info('Bigur OpenID connect / OAuth2 server started at %s:%s', bind_host,
+            bind_port)
 run_app(app, host=bind_host, port=bind_port, print=lambda x: None)
