@@ -65,8 +65,10 @@ class OAuth2RedirectError(OAuth2Error):
 
         if params is None:
             if self.error_code:
-                params['error'] = [self.error_code]
-                params['error_description'] = [str(self)]
+                params = {
+                    'error': [self.error_code],
+                    'error_description': [str(self)]
+                }
 
             if 'oauth2_request' in http_request and (
                     http_request['oauth2_request'].state is not None):
