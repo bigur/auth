@@ -10,7 +10,6 @@ from aiohttp.web import Request
 
 from bigur.auth.oauth2.rfc6749.errors import ParameterRequired
 
-
 logger = getLogger(__name__)
 
 
@@ -19,8 +18,7 @@ class OAuth2Request:
     pass
 
 
-async def create_request(cls: Type,
-                         http_request: Request) -> Request:
+async def create_request(cls: Type, http_request: Request) -> Request:
     if http_request.method == 'GET':
         params = http_request.query
     elif http_request.method == 'POST':
@@ -29,9 +27,11 @@ async def create_request(cls: Type,
         ValueError('Unsupported method %s', http_request.method)
 
     try:
-        kwargs = {key: params[key]
-                  for key in cls.__dataclass_fields__
-                  if key in params}
+        kwargs = {
+            key: params[key]
+            for key in cls.__dataclass_fields__
+            if key in params
+        }
         http_request['oauth2_request'] = cls(**kwargs)
 
     except TypeError as e:

@@ -25,6 +25,7 @@ class AuthorizationRequest(OAuth2AuthorizationRequest):
     response_mode: Optional[str] = None
     nonce: Optional[str] = None
     display: Optional[str] = None
+    user: Optional[str] = None
 
     def __post_init__(self):
         self.response_type = [x.strip() for x in self.response_type.split(' ')]

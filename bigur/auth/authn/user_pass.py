@@ -50,7 +50,7 @@ class UserPass(AuthN):
             unpadder = padding.PKCS7(BLOCK_SIZE * 8).unpadder()
             username = unpadder.update(padded) + unpadder.finalize()
 
-            http_request['oauth2_request']['user'] = username
+            http_request['oauth2_request'].user = username
 
             # XXX: Check cookie is not expired
             # XXX: Remove cookie if expired

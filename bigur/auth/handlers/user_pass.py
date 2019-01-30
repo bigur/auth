@@ -86,7 +86,7 @@ async def user_pass_handler(http_request: Request):
                         backend=backend)
                     encryptor = cipher.encryptor()
 
-                    msg = user.username.encode('utf-8')
+                    msg = user.id.encode('utf-8')
                     padder = padding.PKCS7(BLOCK_SIZE * 8).padder()
                     padded = (padder.update(msg) + padder.finalize())
                     data = encryptor.update(padded) + encryptor.finalize()

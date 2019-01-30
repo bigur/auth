@@ -113,9 +113,9 @@ class TestUserPass:
         decryptor = cipher.decryptor()
         padded = decryptor.update(data) + decryptor.finalize()
         unpadder = padding.PKCS7(BLOCK_SIZE * 8).unpadder()
-        username = unpadder.update(padded) + unpadder.finalize()
+        userid = unpadder.update(padded) + unpadder.finalize()
 
-        assert username.decode('utf-8') == 'admin'
+        assert userid.decode('utf-8') == user.id
 
     @mark.db_configured
     @mark.asyncio
