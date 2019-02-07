@@ -6,7 +6,7 @@ from os import environ, urandom
 from os.path import dirname, normpath
 
 from aiohttp import CookieJar
-from aiohttp.web import Application, get, post
+from aiohttp.web import Application, get, post, view
 from aiohttp_jinja2 import setup as jinja_setup
 from jinja2 import FileSystemLoader
 from pytest import fixture, mark
@@ -14,7 +14,8 @@ from pytest import fixture, mark
 from bigur.store import UnitOfWork, db
 from bigur.utils import config
 
-from bigur.auth.handlers import authorization_handler, user_pass_handler
+from bigur.auth.authn import UserPass
+from bigur.auth.handlers import authorization_handler
 from bigur.auth.model import User, Client
 
 
@@ -37,8 +38,7 @@ def debug(caplog):
 def app():
     app = Application()
     app.add_routes([
-        get('/auth/login', user_pass_handler),
-        post('/auth/login', user_pass_handler),
+        view('/auth/login', UserPass),
         get('/auth/authorize', authorization_handler),
         post('/auth/authorize', authorization_handler),
     ])

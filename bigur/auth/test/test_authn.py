@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 
 from pytest import mark
 
-from bigur.auth.authn.user_pass import BLOCK_SIZE
+from bigur.auth.authn.base import BLOCK_SIZE
 
 
 class TestUserPass:

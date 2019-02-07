@@ -2,77 +2,83 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from base64 import urlsafe_b64decode
 from logging import getLogger
+from typing import Dict
+from urllib.parse import urlunparse, urlencode
 
-from aiohttp.web import Request
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from cryptography.hazmat.primitives.ciphers.modes import CBC
-from cryptography.hazmat.primitives.ciphers import Cipher
-
-from bigur.utils import config
+from aiohttp.web import Response
+from aiohttp.web_exceptions import (HTTPBadRequest)
+from aiohttp_jinja2 import render_template
 
 from bigur.auth.authn.base import AuthN
 from bigur.auth.model import User
-from bigur.auth.oauth2.rfc6749.errors import UserNotAuthenticated
 
 logger = getLogger(__name__)
 
-BLOCK_SIZE = 16
-FIELD_LENGHT = 128
+FIELD_LENGTH = 128
 
 
 class UserPass(AuthN):
     '''End-user login & password authentication'''
 
-    async def authenticate(self, http_request: Request) -> User:
+    async def get(self) -> Response:
+        context: Dict[str, str] = {}
+        return render_template('login_form.j2', self.request, context)
 
-        # First check existing cookie, if it valid - pass
-        cookie_name: str = config.get(
-            'user_pass', 'cookie_name', fallback='oidc')
-        value = http_request.cookies.get(cookie_name)
+    async def post(self) -> Response:
+        post = (await self.request.post()).copy()
 
-        # Check cookie
-        if value:
-            logger.debug('Found cookie %s', value)
+        if ('username' in post and 'password' in post):
+            # Check incoming parameters
+            username = str(post.pop('username')).strip()
+            password = str(post.pop('password')).strip()
 
-            # Initialize crypt backend
-            backend = default_backend()
+            # Check fields too long
+            if (len(username) > FIELD_LENGTH or len(password) > FIELD_LENGTH):
+                logger.warning(
+                    'Recieve request with very long login/password field')
+                raise HTTPBadRequest()
 
-            iv, data = urlsafe_b64decode(value).split(b':', maxsplit=1)
+            # Finding user
+            logger.debug('Try to find user %s in store', username)
 
-            cipher = Cipher(
-                AES(http_request.app['cookie_key']), CBC(iv), backend=backend)
-            decryptor = cipher.decryptor()
-            padded = decryptor.update(data) + decryptor.finalize()
-            unpadder = padding.PKCS7(BLOCK_SIZE * 8).unpadder()
-            username = unpadder.update(padded) + unpadder.finalize()
-
-            http_request['oauth2_request'].user = username
-
-            # XXX: Check cookie is not expired
-            # XXX: Remove cookie if expired
-
-        # If no valid cookie, try to authenticate via username/password
-        # parameters.
-        if value is None:
-            logger.debug('Cookie is not set, redirecting to login form')
-            if http_request.method == 'GET':
-                params = http_request.query.copy()
-            elif http_request.method == 'POST':
-                params = (await http_request.post()).copy()
+            user = await User.find_one({'username': username})
+            if user is None:
+                logger.warning('User {} not found'.format(username))
             else:
-                raise ValueError('Unsupported http method: %s',
-                                 http_request.method)
-            params['next'] = http_request.path
-            redirect_uri = config.get(
-                'user_pass', 'login_endpoint', fallback='/auth/login')
-            raise UserNotAuthenticated(
-                'Authentication required',
-                http_request,
-                redirect_uri=redirect_uri,
-                params=params)
+                if user.verify_password(password):
+                    # Login successful
+                    logger.debug('Login for user %s successful', username)
 
-        return http_request
+                    # No next parameter, no way to redirect
+                    if 'next' not in post:
+                        response = Response(text='Login successful')
+
+                    # Redirecting
+                    else:
+                        next_uri = post.pop('next')
+                        url = self.request.url
+                        response = Response(
+                            status=303,
+                            reason='See Other',
+                            charset='utf-8',
+                            headers={
+                                'Location':
+                                    urlunparse(
+                                        (url.scheme, url.raw_host, next_uri, '',
+                                         urlencode(post, doseq=True),
+                                         url.raw_fragment))
+                            })
+                        response.set_status(303, 'See Other')
+
+                    # Set cookie
+                    self.set_cookie(response, user.id)
+
+                    return response
+
+                logger.warning(
+                    'Password is incorrect for user {}'.format(username))
+
+        # Show form
+        context: Dict[str, str] = {}
+        return render_template('login_form.j2', self.request, context)

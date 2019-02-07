@@ -5,7 +5,7 @@ from asyncio import get_event_loop
 from logging import getLogger, StreamHandler, DEBUG, INFO, WARNING, ERROR
 from os import urandom
 
-from aiohttp.web import Application, run_app, get, post
+from aiohttp.web import Application, run_app, get, post, view
 from aiohttp_jinja2 import setup as jinja_setup
 from jinja2 import FileSystemLoader
 from bigur.store import Migrator, db
@@ -13,7 +13,8 @@ from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
 from bigur.auth import migration  # noqa: F401
-from bigur.auth.handlers import (authorization_handler, user_pass_handler)
+from bigur.auth.authn import UserPass
+from bigur.auth.handlers import authorization_handler
 from bigur.auth.version import __version__
 
 # Setup command line args
@@ -69,9 +70,9 @@ app = Application()
 
 # Setup routing
 app.add_routes([
-    get(config.get('user_pass', 'login_endpoint'), user_pass_handler),
     get(config.get('authorization', 'endpoint'), authorization_handler),
     post(config.get('authorization', 'endpoint'), authorization_handler),
+    view(config.get('user_pass', 'login_endpoint'), UserPass)
 ])
 
 # Initialize template engine
