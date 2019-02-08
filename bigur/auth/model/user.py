@@ -29,7 +29,7 @@ class User(Stored):
     __metadata__ = {
         'collection': 'users',
         'replace_attrs': {'_crypt': 'crypt',
-                          '_salt':  'salt'},
+                          '_salt': 'salt'},
     }
 
     def __init__(self, username: str, password: Optional[str] = None):
