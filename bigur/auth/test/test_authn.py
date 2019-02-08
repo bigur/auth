@@ -16,6 +16,8 @@ from pytest import mark
 
 from bigur.auth.authn.base import BLOCK_SIZE
 
+# TODO: test can't decrypt cookie
+
 
 class TestUserPass:
 
