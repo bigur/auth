@@ -10,8 +10,12 @@ from aiohttp.web import Response
 from aiohttp.web_exceptions import (HTTPBadRequest)
 from aiohttp_jinja2 import render_template
 
-from bigur.auth.authn.base import AuthN
+from bigur.utils import config
+
 from bigur.auth.model import User
+from bigur.auth.oauth2.rfc6749.errors import UserNotAuthenticated
+
+from bigur.auth.authn.base import AuthN
 
 logger = getLogger(__name__)
 
@@ -20,6 +24,23 @@ FIELD_LENGTH = 128
 
 class UserPass(AuthN):
     '''End-user login & password authentication'''
+
+    async def redirect_unauthenticated(self):
+        if self.request.method == 'GET':
+            params = self.request.query.copy()
+        elif self.request.method == 'POST':
+            params = (await self.request.post()).copy()
+        else:
+            raise ValueError('Unsupported http method: %s', self.request.method)
+
+        params['next'] = self.request.path
+        redirect_uri = config.get(
+            'user_pass', 'login_endpoint', fallback='/auth/login')
+        raise UserNotAuthenticated(
+            'Authentication required',
+            self.request,
+            redirect_uri=redirect_uri,
+            params=params)
 
     async def get(self) -> Response:
         context: Dict[str, str] = {}
@@ -72,7 +93,7 @@ class UserPass(AuthN):
                         response.set_status(303, 'See Other')
 
                     # Set cookie
-                    self.set_cookie(response, user.id)
+                    self.set_cookie(self.request, response, user.id)
 
                     return response
 

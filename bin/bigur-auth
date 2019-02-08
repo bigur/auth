@@ -13,7 +13,7 @@ from bigur.utils import argparser, config
 from bigur.utils.logger import BigurFormatter
 
 from bigur.auth import migration  # noqa: F401
-from bigur.auth.authn import UserPass
+from bigur.auth.authn import UserPass, OpenIDConnect
 from bigur.auth.handlers import authorization_handler
 from bigur.auth.version import __version__
 
@@ -72,17 +72,18 @@ app = Application()
 app.add_routes([
     get(config.get('authorization', 'endpoint'), authorization_handler),
     post(config.get('authorization', 'endpoint'), authorization_handler),
-    view(config.get('user_pass', 'login_endpoint'), UserPass)
+    view(config.get('user_pass', 'login_endpoint'), UserPass),
+    view(config.get('oidc', 'landing_endpoint'), OpenIDConnect)
 ])
 
 # Initialize template engine
 templates = config.get(
-    'auth', 'templates', fallback='/usr/share/bigur/auth/templates')
+    'general', 'templates', fallback='/usr/share/bigur/auth/templates')
 jinja_setup(app, loader=FileSystemLoader(templates))
 
 # Load/generate cookie crypt key
 key_file = config.get(
-    'auth', 'cookie_key_file', fallback='/etc/bigur/cookie.key')
+    'general', 'cookie_key_file', fallback='/etc/bigur/cookie.key')
 
 try:
     with open(key_file, 'rb') as fh:
@@ -90,7 +91,8 @@ try:
 
 except OSError as e:
     logger.warning('Error while read cookie key: %s', e)
-    need_write = config.getboolean('auth', 'cookie_write_key', fallback=False)
+    need_write = config.getboolean(
+        'general', 'cookie_write_key', fallback=False)
     key = urandom(32)
     if need_write:
         try:

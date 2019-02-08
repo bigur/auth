@@ -36,6 +36,10 @@ class ParameterRequired(OAuth2FatalError):
     '''Raises then required parameter is absent.'''
 
 
+class InvalidParameter(OAuth2FatalError):
+    '''Raises then required parameter is invalid.'''
+
+
 class OAuth2RedirectError(OAuth2Error):
     '''This kind of exceptions should be return to user
     via redirection after `redirect_uri` check.'''

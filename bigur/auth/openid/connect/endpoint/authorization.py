@@ -2,7 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from logging import getLogger
 from typing import List, Optional
 
@@ -26,9 +26,12 @@ class AuthorizationRequest(OAuth2AuthorizationRequest):
     nonce: Optional[str] = None
     display: Optional[str] = None
     user: Optional[str] = None
+    acr_values: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         self.response_type = [x.strip() for x in self.response_type.split(' ')]
+        if isinstance(self.acr_values, str):
+            self.acr_values = [x.strip() for x in self.acr_values.split(' ')]
 
 
 async def create_oidc_request(http_request: Request):
