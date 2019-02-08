@@ -1,18 +1,20 @@
-# Файлы python
+# Python files
 *.pyc
 __pycache__
 
 # Папка egg-info
-/bigur_auth.egg-info
+*.egg-info
 
-# Кеш mypy
+# MyPy cache
 .mypy_cache
 
-# Конфиги для разработчиков
+# Development files
+/conf/*.key
 /conf/*-devel.conf
 
-# Файл .env
+# Env
 /.env
 
-# Файлы vscode
-/.vscode/tags
+# Editors
+!/.vscode/tasks.json
+/.vscode/*
