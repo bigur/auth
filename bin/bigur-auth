@@ -15,6 +15,7 @@ from bigur.utils.logger import BigurFormatter
 from bigur.auth import migration  # noqa: F401
 from bigur.auth.authn import UserPass, OpenIDConnect
 from bigur.auth.handlers import authorization_handler
+from bigur.auth.middlewares import session
 from bigur.auth.version import __version__
 
 # Setup command line args
@@ -66,7 +67,7 @@ loop = get_event_loop()
 loop.run_until_complete(Migrator('auth', __version__).on_next(db))
 
 # Create web server
-app = Application()
+app = Application(middlewares=[session])
 
 # Setup routing
 app.add_routes([

@@ -16,6 +16,7 @@ from bigur.utils import config
 
 from bigur.auth.authn import UserPass
 from bigur.auth.handlers import authorization_handler
+from bigur.auth.middlewares import session
 from bigur.auth.model import User, Client
 
 
@@ -36,7 +37,7 @@ def debug(caplog):
 
 @fixture
 def app():
-    app = Application()
+    app = Application(middlewares=[session])
     app.add_routes([
         view('/auth/login', UserPass),
         get('/auth/authorize', authorization_handler),
