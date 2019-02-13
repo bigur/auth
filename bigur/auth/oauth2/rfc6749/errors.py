@@ -11,8 +11,8 @@ from aiohttp.web import Request
 class OAuth2Error(Exception):
     '''Base class for OAuth2 errors.'''
 
-    def __init__(self, message: str, http_request: Request):
-        self.http_request = http_request
+    def __init__(self, message: str, request: Request):
+        self.request = request
         super().__init__(message)
 
 
