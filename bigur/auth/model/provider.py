@@ -25,7 +25,8 @@ class Provider(Stored):
         'token_endpoint_auth_methods_supported',
         'claims_supported',
         'code_challenge_methods_supported',
-        'client_id'
+        'client_id',
+        'client_secret',
     }
 
     def __init__(self, domain: str, **kwargs):
