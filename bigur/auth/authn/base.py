@@ -22,7 +22,7 @@ logger = getLogger(__name__)
 BLOCK_SIZE = 16
 
 
-def decrypt_cookie(key: bytes, value: bytes) -> str:
+def decrypt(key: bytes, value: bytes) -> str:
     backend = default_backend()
 
     iv, data = value.split(b':', maxsplit=1)
@@ -36,7 +36,7 @@ def decrypt_cookie(key: bytes, value: bytes) -> str:
     return unpadder.update(padded) + unpadder.finalize()
 
 
-def crypt_cookie(key: bytes, username: str) -> bytes:
+def crypt(key: bytes, username: str) -> bytes:
     backend = default_backend()
 
     iv: bytes = urandom(BLOCK_SIZE)
@@ -52,12 +52,13 @@ def crypt_cookie(key: bytes, username: str) -> bytes:
 
 class AuthN(View):
 
-    def set_cookie(self, request: Request, response: Response, username: str):
+    def set_cookie(self, request: Request, response: Response, userid: str):
 
         key = request.app['cookie_key']
-        value = urlsafe_b64encode(crypt_cookie(key, username)).decode('utf-8')
+        value = urlsafe_b64encode(crypt(key, userid)).decode('utf-8')
 
-        cookie_name: str = config.get('general', 'cookie_name', fallback='oidc')
+        cookie_name: str = config.get(
+            'general', 'id_cookie_name', fallback='uid')
         cookie_lifetime: int = config.getint(
             'general', 'cookie_lifetime', fallback=3600)
         if config.getboolean('general', 'cookie_secure', fallback=True):
@@ -73,5 +74,5 @@ class AuthN(View):
             secure=cookie_secure,
             httponly='yes')
 
-    def redirect_unauthenticated(self) -> Response:
+    def redirect_unauthenticated(self):
         raise NotImplementedError

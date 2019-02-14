@@ -47,19 +47,19 @@ class OAuth2RedirectError(OAuth2Error):
 
     def __init__(self,
                  reason: str,
-                 http_request: Request,
+                 request: Request,
                  redirect_uri: Optional[str] = None,
                  params: Optional[Dict[str, str]] = None):
         self.redirect_uri = redirect_uri
         self.params = params
-        super().__init__(reason, http_request)
+        super().__init__(reason, request)
 
     @property
     def location(self):
-        http_request = self.http_request
+        request = self.request
         redirect_uri = self.redirect_uri
         if redirect_uri is None:
-            redirect_uri = http_request['oauth2_request'].redirect_uri
+            redirect_uri = request['oauth2_request'].redirect_uri
 
         parts = urlparse(redirect_uri)
 
@@ -74,13 +74,14 @@ class OAuth2RedirectError(OAuth2Error):
                     'error_description': [str(self)]
                 }
 
-            if 'oauth2_request' in http_request and (
-                    http_request['oauth2_request'].state is not None):
-                params['state'] = [http_request['oauth2_request'].state]
+            if 'oauth2_request' in request and (request['oauth2_request'].state
+                                                is not None):
+                params['state'] = [request['oauth2_request'].state]
 
         query.update(params)
 
-        return urlunparse((parts.scheme, parts.netloc, parts.path, parts.params,
+        return urlunparse((parts.scheme, parts.netloc,
+                           parts.path, parts.params,
                            urlencode(query, doseq=True), parts.fragment))
 
 

@@ -9,9 +9,7 @@ from aiohttp.web import Request
 
 from bigur.utils import config
 
-from bigur.auth.oauth2.rfc6749.errors import InvalidParameter
-
-from .base import decrypt_cookie
+from .base import decrypt
 from .oidc import OpenIDConnect
 from .user_pass import UserPass
 
@@ -35,7 +33,7 @@ async def authenticate_end_user(request: Request) -> Request:
         logger.debug('Found cookie %s', value)
 
         key = request.app['cookie_key']
-        username: str = decrypt_cookie(key, urlsafe_b64decode(value))
+        userid: str = decrypt(key, urlsafe_b64decode(value))
 
         # XXX: Check user's session is active
         # XXX: Remove cookie if expired
@@ -45,20 +43,16 @@ async def authenticate_end_user(request: Request) -> Request:
     if value is None:
         logger.debug('Cookie is not set, detecting authn method')
 
-        idp = None
+        handler = None
         for acr in request['oauth2_request'].acr_values:
-            logger.debug('... acr: %s', acr)
-            parts = acr.split(':')
-            if parts[0] == 'idp':
-                if len(parts) != 2:
-                    raise InvalidParameter('Invalid acr parameter')
-                idp = OpenIDConnect(request, parts[1])
+            if acr.startswith('idp:'):
+                handler = OpenIDConnect(request)
 
-        if idp is None:
-            idp = UserPass(request)
+        if handler is None:
+            handler = UserPass(request)
 
-        await idp.redirect_unauthenticated()
+        await handler.redirect_unauthenticated()
 
-    request['oauth2_request'].user = username
+    request['oauth2_request'].userid = userid
 
     return request
