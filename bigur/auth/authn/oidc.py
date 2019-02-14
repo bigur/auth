@@ -5,12 +5,13 @@ __licence__ = 'For license information see LICENSE'
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 from hashlib import sha256
 from logging import getLogger
-from typing import List, Union
+from typing import Dict, List, Union
 from urllib.parse import parse_qs
 
 from aiohttp import ClientSession, ClientError
 from aiohttp.web_exceptions import HTTPSeeOther
 from aiohttp.web import Response
+from aiohttp_jinja2 import render_template
 from jwt import decode, get_unverified_header
 from jwt.algorithms import get_default_algorithms
 
@@ -244,10 +245,8 @@ class OpenIDConnect(AuthN):
         })
         if user is None:
             logger.warning('User {} not found'.format(payload['sub']))
-            url = '{}://{}{}'.format(
-                self.request.scheme, self.request.host,
-                config.get(
-                    'oidc', 'register_endpoint', fallback='/auth/register'))
-            raise HTTPSeeOther(location=url)
+            context: Dict[str, str] = {}
+            return render_template('oidc_user_not_exists.j2', self.request,
+                                   context)
 
         return Response(text='ok')
