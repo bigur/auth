@@ -15,11 +15,9 @@ from jwt import decode, get_unverified_header
 from jwt.algorithms import get_default_algorithms
 
 from bigur.auth.authn.base import AuthN, crypt, decrypt
-from bigur.auth.model import Provider
+from bigur.auth.model.abc import Provider
 from bigur.auth.oauth2.rfc6749.errors import (
     UserNotAuthenticated, InvalidParameter, InvalidClientCredentials)
-
-from bigur.auth.model import User
 
 logger = getLogger(__name__)
 

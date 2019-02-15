@@ -2,22 +2,21 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from os import environ, urandom
+from os import urandom
 from os.path import dirname, normpath
 
 from aiohttp import CookieJar
-from aiohttp.web import Application, get, post, view
+from aiohttp.web import Application, view
 from aiohttp_jinja2 import setup as jinja_setup
 from jinja2 import FileSystemLoader
-from pytest import fixture, mark
+from kaptan import Kaptan
+from pytest import fixture
 
-from bigur.store import UnitOfWork, db
-from bigur.utils import config
-
-from bigur.auth.authn import UserPass
-from bigur.auth.handlers import authorization_handler
+from bigur.auth.authn import OpenIDConnect, UserPass
+from bigur.auth.handlers import AuthorizeView
 from bigur.auth.middlewares import session
 from bigur.auth.model import User, Client
+from bigur.auth.store import Memory
 
 
 @fixture
@@ -38,18 +37,22 @@ def debug(caplog):
 @fixture
 def app():
     app = Application(middlewares=[session])
+
     app.add_routes([
         view('/auth/login', UserPass),
-        get('/auth/authorize', authorization_handler),
-        post('/auth/authorize', authorization_handler),
+        view('/auth/oidc', OpenIDConnect),
+        view('/auth/authorize', AuthorizeView),
     ])
+    app['config'] = Kaptan()
+    app['config'].import_config({'authn': {}})
+
     app['cookie_key'] = urandom(32)
-    conf = config.get_object()
-    if not conf.has_section('user_pass'):
-        conf.add_section('user_pass')
-    conf.set('user_pass', 'cookie_secure', 'false')
+
+    app['store'] = Memory()
+
     templates = normpath(dirname(__file__) + '../../../../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
+
     return app
 
 
@@ -63,35 +66,17 @@ def cli(loop, app, cookie_jar, aiohttp_client):
     return loop.run_until_complete(aiohttp_client(app, cookie_jar=cookie_jar))
 
 
-@fixture
-async def database():
-    conf = config.get_object()
-    if not conf.has_section('general'):
-        conf.add_section('general')
-    conf.set('general', 'database_url', environ.get('BIGUR_TEST_DB'))
-    db._db = None
-    for collection in await db.list_collection_names():
-        await db.drop_collection(collection)
-    yield db
-
-
-mark.db_configured = mark.skipif(
-    environ.get('BIGUR_TEST_DB') is None,
-    reason='Setup BIGUR_TEST_DB env with mongodb URL.')
-
-
 # Entities
 @fixture
-async def user(database):
-    async with UnitOfWork():
-        user = User('admin', '123')
+async def user(app):
+    user = await app['store'].users.put(User('admin', '123'))
     yield user
 
 
 @fixture
-async def aclient(database, user):
-    async with UnitOfWork():
-        client = Client('Test web client', user.id, 'password')
+async def aclient(app, user):
+    client = await app['store'].clients.put(
+        Client('Test web client', user.id, 'password'))
     yield client
 
 

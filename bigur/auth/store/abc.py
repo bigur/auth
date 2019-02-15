@@ -15,6 +15,10 @@ class Collection(Generic[T, K], ABC):
         self.store = store
 
     @abstractmethod
+    async def create(self, **kwargs) -> T:
+        raise NotImplementedError
+
+    @abstractmethod
     async def get(self, key: K) -> T:
         raise NotImplementedError
 

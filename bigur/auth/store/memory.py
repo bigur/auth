@@ -27,6 +27,11 @@ class Collection(abc.Collection[Object, str]):
 
 class ProvidersCollection(Collection, abc.ProvidersCollection[Provider, str]):
 
+    async def create(self, **kwargs) -> Provider:
+        provider = Provider(**kwargs)
+        await self.put(provider)
+        return provider
+
     async def get_by_domain(self, domain: str) -> Provider:
         for v in self._db.values():
             if domain in getattr(v, 'domains', []):
@@ -35,6 +40,11 @@ class ProvidersCollection(Collection, abc.ProvidersCollection[Provider, str]):
 
 
 class UsersCollection(Collection, abc.UsersCollection[User, str]):
+
+    async def create(self, **kwargs) -> User:
+        user = User(**kwargs)
+        await self.put(user)
+        return user
 
     async def get_by_oidp(self, provider_id: str, user_id: str) -> User:
         for v in self._db.values():
