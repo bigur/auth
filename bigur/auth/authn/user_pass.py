@@ -10,8 +10,6 @@ from aiohttp.web import Response
 from aiohttp.web_exceptions import (HTTPBadRequest)
 from aiohttp_jinja2 import render_template
 
-from bigur.utils import config
-
 from bigur.auth.model import User
 from bigur.auth.oauth2.rfc6749.errors import UserNotAuthenticated
 

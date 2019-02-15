@@ -9,13 +9,11 @@ from typing import Callable, Optional
 from aiohttp.web import Request, Response, middleware
 from aiohttp.web_exceptions import HTTPException
 
-from bigur.utils import config
-
 logger = getLogger(__name__)
 
 
-def set_cookie(response: Response, name: str, value: str):
-    if config.getboolean('general', 'cookie_secure', fallback=True):
+def set_cookie(request: Request, response: Response, name: str, value: str):
+    if request.app['config'].get('authn.cookie.secure'):
         cookie_secure: Optional[str] = 'yes'
     else:
         cookie_secure = None
@@ -25,7 +23,7 @@ def set_cookie(response: Response, name: str, value: str):
 
 @middleware
 async def session(request: Request, handler: Callable) -> Response:
-    cookie_name: str = config.get('general', 'sid_cookie_name', fallback='sid')
+    cookie_name: str = request.app['config'].get('authn.cookie.session_name')
 
     sid: Optional[str] = request.cookies.get(cookie_name)
     if sid is None:
@@ -38,9 +36,9 @@ async def session(request: Request, handler: Callable) -> Response:
     try:
         response = await handler(request)
     except HTTPException as e:
-        set_cookie(e, cookie_name, request['sid'])
+        set_cookie(request, e, cookie_name, request['sid'])
         raise
     else:
-        set_cookie(response, cookie_name, request['sid'])
+        set_cookie(request, response, cookie_name, request['sid'])
 
     return response

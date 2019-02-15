@@ -15,9 +15,6 @@ from aiohttp_jinja2 import render_template
 from jwt import decode, get_unverified_header
 from jwt.algorithms import get_default_algorithms
 
-from bigur.store import UnitOfWork
-from bigur.utils import config
-
 from bigur.auth.authn.base import AuthN, crypt, decrypt
 from bigur.auth.model import Provider
 from bigur.auth.oauth2.rfc6749.errors import (
@@ -77,12 +74,11 @@ class OpenIDConnect(AuthN):
                                      'configuration for {}'.format(domain))
 
         # Well known providers
-        try:
-            endpoint_cnf['client_id'] = config.get(
-                'oidc', '{}_client_id'.format(domain))
-            endpoint_cnf['client_secret'] = config.get(
-                'oidc', '{}_client_secret'.format(domain))
-        except ValueError:
+        clients = self.request.app['config'].get('authn.oidc.clients')
+        if domain in clients:
+            endpoint_cnf['client_id'] = clients[domain]['client_id']
+            endpoint_cnf['client_secret'] = clients[domain]['client_secret']
+        else:
             raise RegistrationNeeded(
                 'Provider {} is not supported'.format(domain))
 
@@ -99,7 +95,7 @@ class OpenIDConnect(AuthN):
     def landing_uri(self) -> str:
         return '{}://{}{}'.format(
             self.request.scheme, self.request.host,
-            config.get('oidc', 'landing_endpoint', fallback='/auth/oidc'))
+            self.request.app['config'].get('http_server.endpoints.oidc.path'))
 
     async def redirect_unauthenticated(self):
 

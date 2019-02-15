@@ -7,25 +7,18 @@ from logging import getLogger
 
 from aiohttp.web import Request
 
-from bigur.utils import config
-
 from .base import decrypt
 from .oidc import OpenIDConnect
 from .user_pass import UserPass
-
-authenticators = {
-    'userpass': UserPass,
-    'google': OpenIDConnect,  # XXX: stub
-}
 
 logger = getLogger(__name__)
 
 
 async def authenticate_end_user(request: Request) -> Request:
-    logger.debug('Authentication of end user')
+    logger.debug('Authenticating of end user')
 
     # First check existing cookie, if it valid - pass
-    cookie_name: str = config.get('general', 'cookie_name', fallback='oidc')
+    cookie_name: str = request.app['config'].get('authn.cookie.id_name')
     value = request.cookies.get(cookie_name)
 
     # Check cookie
@@ -46,9 +39,11 @@ async def authenticate_end_user(request: Request) -> Request:
         handler = None
         for acr in request['oauth2_request'].acr_values:
             if acr.startswith('idp:'):
+                logger.debug('Using OpenID Connect authn method')
                 handler = OpenIDConnect(request)
 
         if handler is None:
+            logger.debug('Using login/password authn method')
             handler = UserPass(request)
 
         await handler.redirect_unauthenticated()

@@ -4,7 +4,7 @@ __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
 
-from aiohttp.web import Request, Response
+from aiohttp.web import Request, Response, View
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPInternalServerError,
                                     HTTPSeeOther)
 
@@ -50,29 +50,35 @@ class ResultObserver(ObserverBase[Request]):
         logger.debug('Request process finished')
 
 
-async def authorization_handler(request: Request):
+class AuthorizeView(View):
 
-    request['oauth2_request'] = None
-    request['oauth2_responses'] = []
+    async def authorize(self):
+        self.request['oauth2_request'] = None
+        self.request['oauth2_responses'] = []
 
-    stream = Subject()
+        stream = Subject()
 
-    base_branch = (
-        stream
-        | op.map(create_oidc_request)
-        | op.map(authenticate_end_user))
-    # check redirect uri
+        base_branch = (
+            stream
+            | op.map(create_oidc_request)
+            | op.map(authenticate_end_user))
 
-    implicit_grant_branch = (
-        base_branch
-        | op.filter(lambda x: 'token_id' in x['oauth2_request'].response_type)
-        | op.map(implicit_grant))
+        implicit_grant_branch = (
+            base_branch
+            | op.filter(lambda x: 'tok' in x['oauth2_request'].response_type)
+            | op.map(implicit_grant))
 
-    result_branch = op.concat(implicit_grant_branch)
+        result_branch = op.concat(implicit_grant_branch)
 
-    result = ResultObserver(request)
-    await result_branch.subscribe(result)
+        result = ResultObserver(self.request)
+        await result_branch.subscribe(result)
 
-    await stream.on_next(request)
+        await stream.on_next(self.request)
 
-    return result.response
+        return result.response
+
+    async def get(self):
+        return await self.authorize()
+
+    async def post(self):
+        return await self.authorize()

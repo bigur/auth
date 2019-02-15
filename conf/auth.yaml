@@ -1,0 +1,59 @@
+#
+# Bigur authd settings
+#
+logging:
+  version: 1
+  formatters:
+    colored:
+      class: colorlog.ColoredFormatter
+      format: '%(log_color)s%(levelname)-8s %(reset)s%(blue)s%(name)s:%(reset)s %(message)s'
+  handlers:
+    console:
+      level: DEBUG
+      formatter: colored
+      class: colorlog.StreamHandler
+  loggers:
+    '':
+      handlers: [console]
+      level: DEBUG
+      propagate: true
+    'aiohttp':
+      handlers: [console]
+      level: DEBUG
+      propagate: true
+
+
+http_server:
+  bind:
+    host: 127.0.0.1
+    port: 8889
+
+  endpoints:
+    login:
+      path: /auth/login
+      handler: bigur.auth.authn.UserPass
+    oidc:
+      path: /auth/oidc
+      handler: bigur.auth.authn.OpenIDConnect
+    authorize:
+      path: /auth/authorize
+      handler: bigur.auth.handlers.AuthorizeView
+
+  templates: /usr/share/bigur/auth/templates
+
+authn:
+  cookie:
+    key_file: /etc/bigur/cookie.key
+    write_key: true
+    max_age: 3600
+    path: /auth
+    secure: true
+    id_name: uid
+    session_name: sid
+  oidc:
+    clients:
+      accounts.google.com:
+        client_id:
+        client_secret:
+
+authz:

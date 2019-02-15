@@ -15,8 +15,6 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 from cryptography.hazmat.primitives.ciphers import Cipher
 
-from bigur.utils import config
-
 logger = getLogger(__name__)
 
 BLOCK_SIZE = 16
@@ -57,16 +55,15 @@ class AuthN(View):
         key = request.app['cookie_key']
         value = urlsafe_b64encode(crypt(key, userid)).decode('utf-8')
 
-        cookie_name: str = config.get(
-            'general', 'id_cookie_name', fallback='uid')
-        cookie_lifetime: int = config.getint(
-            'general', 'cookie_lifetime', fallback=3600)
-        if config.getboolean('general', 'cookie_secure', fallback=True):
+        config = request.app['config']
+        cookie_name: str = config.get('authn.cookie.id_name')
+        cookie_lifetime: int = config.get('authn.cookie.lifetime')
+        if config.get('authn.cookie.secure'):
             cookie_secure: Optional[str] = 'yes'
         else:
             cookie_secure = None
 
-        logger.debug('set cookie')
+        logger.debug('Set cookie %s=%s', cookie_name, value)
         response.set_cookie(
             cookie_name,
             value,

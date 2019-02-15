@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+
+from argparse import ArgumentParser
+from logging import getLogger
+from logging.config import dictConfig
+from os import urandom
+from os.path import basename
+from sys import argv
+
+from aiohttp.web import Application, run_app, view
+from aiohttp_jinja2 import setup as jinja_setup
+from jinja2 import FileSystemLoader
+from kaptan import Kaptan
+
+from bigur.auth.middlewares import session
+from bigur.auth.utils import import_class
+
+# Setup command line args
+argparser = ArgumentParser()
+
+argparser.add_argument(
+    '-c',
+    '--config',
+    dest='config',
+    metavar='FILE',
+    default='/etc/bigur/auth.yaml',
+    help='config file path')
+
+args = argparser.parse_args()
+
+# Create web server
+app = Application(middlewares=[session])
+
+# Load configuration
+app['config'] = Kaptan(handler='yaml')
+app['config'].import_config(args.config)
+
+# Init logger
+dictConfig(app['config'].get('logging'))
+logger = getLogger(basename(argv[0]))
+
+# Setup routing
+routes = []
+for endpoint in app['config'].get('http_server.endpoints').values():
+    routes.append(view(endpoint['path'], import_class(endpoint['handler'])))
+app.add_routes(routes)
+
+# Initialize template engine
+templates = app['config'].get('http_server.templates')
+jinja_setup(app, loader=FileSystemLoader(templates))
+
+# Load/generate cookie crypt key
+key_file = app['config'].get('authn.cookie.key_file')
+
+try:
+    with open(key_file, 'rb') as fh:
+        key: bytes = fh.read()
+
+except OSError as e:
+    logger.warning('Error while read cookie key: %s', e)
+    key = urandom(32)
+    if app['config'].get('authn.cookie.write_key'):
+        logger.warning('Writing new cookie key to file: %s', key_file)
+        try:
+            with open(key_file, 'wb') as fh:
+                fh.write(key)
+        except OSError as e:
+            logger.error('Error while save cookie key file: %s', e)
+app['cookie_key'] = key
+
+# Start web-server
+host = app['config'].get('http_server.bind.host')
+port = app['config'].get('http_server.bind.port')
+
+logger.info('Bigur OpenID connect / OAuth2 server started at %s:%s', host, port)
+run_app(app, host=host, port=port, print=lambda x: None)
