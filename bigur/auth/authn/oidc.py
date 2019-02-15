@@ -9,7 +9,6 @@ from typing import Dict, List, Union
 from urllib.parse import parse_qs
 
 from aiohttp import ClientSession, ClientError
-from aiohttp.web_exceptions import HTTPSeeOther
 from aiohttp.web import Response
 from aiohttp_jinja2 import render_template
 from jwt import decode, get_unverified_header
@@ -75,6 +74,7 @@ class OpenIDConnect(AuthN):
 
         # Well known providers
         clients = self.request.app['config'].get('authn.oidc.clients')
+        logger.debug('domain %s in clients %s', domain, clients)
         if domain in clients:
             endpoint_cnf['client_id'] = clients[domain]['client_id']
             endpoint_cnf['client_secret'] = clients[domain]['client_secret']
@@ -82,12 +82,14 @@ class OpenIDConnect(AuthN):
             raise RegistrationNeeded(
                 'Provider {} is not supported'.format(domain))
 
-        async with UnitOfWork():
-            return Provider(domain, **endpoint_cnf)
+        provider = Provider(domain, **endpoint_cnf)
+        return await self.request.app['store'].providers.put(provider)
 
     async def get_provider(self, domain: str) -> Provider:
-        provider = await Provider.find_one({'domains': domain})
-        if provider is None:
+        try:
+            provider = await self.request.app['store'].providers.get_by_domain(
+                domain)
+        except KeyError:
             provider = await self.create_provider(domain)
         return provider
 
@@ -235,11 +237,10 @@ class OpenIDConnect(AuthN):
         if payload['nonce'] != nonce:
             raise InvalidParameter('Can\'t verify nonce', self.request)
 
-        user = await User.find_one({
-            'accounts.provider': provider.id,
-            'accounts.id': payload['sub']
-        })
-        if user is None:
+        try:
+            user = await self.request.app['store'].users.get_by_oidp(
+                provider.id, payload['sub'])
+        except KeyError:
             logger.warning('User {} not found'.format(payload['sub']))
             context: Dict[str, str] = {}
             return render_template('oidc_user_not_exists.j2', self.request,

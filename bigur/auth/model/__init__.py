@@ -4,6 +4,8 @@ __licence__ = 'For license information see LICENSE'
 
 # flake8: noqa
 
+from .base import Object
+
 from .client import Client
 from .provider import Provider
 from .user import User, Human

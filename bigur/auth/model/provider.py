@@ -4,14 +4,10 @@ __licence__ = 'For license information see LICENSE'
 
 from aiohttp import ClientSession
 
-from bigur.store import Stored
+from bigur.auth.model.base import Object
 
 
-class Provider(Stored):
-
-    __metadata__ = {
-        'collection': 'providers'
-    }
+class Provider(Object):
 
     keys = {
         'issuer',
@@ -46,4 +42,4 @@ class Provider(Stored):
         raise KeyError('key not found')
 
     def __str__(self):
-        return '<{}({})>'.format(type(self).__name__, self._id)
+        return '<{}({})>'.format(type(self).__name__, self.id)

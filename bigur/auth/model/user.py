@@ -17,13 +17,12 @@ from logging import getLogger
 from typing import Optional
 from uuid import uuid4
 
-from bigur.store import Stored
+from bigur.auth.model.base import Object
+
+logger = getLogger(__name__)
 
 
-logger = getLogger('bigur.auth.model.user')
-
-
-class User(Stored):
+class User(Object):
     '''Учётная запись пользователя в системе.'''
 
     __metadata__ = {
