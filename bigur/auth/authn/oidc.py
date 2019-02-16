@@ -97,8 +97,7 @@ class OpenIDConnect(AuthN):
             self.request.scheme, self.request.host,
             self.request.app['config'].get('http_server.endpoints.oidc.path'))
 
-    async def redirect_unauthenticated(self):
-
+    async def authenticate(self):
         try:
             domain = self.domain_from_acr_values(
                 self.request['oauth2_request'].acr_values)

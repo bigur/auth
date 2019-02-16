@@ -46,7 +46,7 @@ async def authenticate_end_user(request: Request) -> Request:
             logger.debug('Using login/password authn method')
             handler = UserPass(request)
 
-        await handler.redirect_unauthenticated()
+        await handler.authenticate()
 
     request['oauth2_request'].userid = userid
 

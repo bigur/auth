@@ -23,7 +23,7 @@ FIELD_LENGTH = 128
 class UserPass(AuthN):
     '''End-user login & password authentication'''
 
-    async def redirect_unauthenticated(self):
+    async def authenticate(self):
         if self.request.method == 'GET':
             params = self.request.query.copy()
         elif self.request.method == 'POST':

@@ -71,5 +71,5 @@ class AuthN(View):
             secure=cookie_secure,
             httponly='yes')
 
-    def redirect_unauthenticated(self):
+    def authenticate(self):
         raise NotImplementedError
