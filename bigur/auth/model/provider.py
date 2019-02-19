@@ -41,5 +41,8 @@ class Provider(Object):
             return self.keys[kid]
         raise KeyError('Key with kid {} not found'.format(kid))
 
+    async def get_authorization_endpoint(self):
+        return self.authorization_endpoint
+
     def __str__(self):
         return '<{}({})>'.format(type(self).__name__, self.id)
