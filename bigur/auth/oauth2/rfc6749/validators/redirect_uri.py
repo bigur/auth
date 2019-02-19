@@ -9,6 +9,6 @@ from aiohttp.web import Request
 logger = getLogger(__name__)
 
 
-async def validate_client_id(request: Request) -> Request:
-    logger.warning('Validate client_id stub')
+async def validate_redirect_uri(request: Request) -> Request:
+    logger.warning('Validate redirect_uri stub')
     return request

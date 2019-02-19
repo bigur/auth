@@ -9,6 +9,6 @@ from aiohttp.web import Request
 logger = getLogger(__name__)
 
 
-async def validate_client_id(request: Request) -> Request:
-    logger.warning('Validate client_id stub')
+async def authorize_client(request: Request) -> Request:
+    logger.warning('Client authorization stub')
     return request
