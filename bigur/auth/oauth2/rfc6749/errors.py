@@ -80,13 +80,8 @@ class OAuth2RedirectError(OAuth2Error):
 
         query.update(params)
 
-        return urlunparse((parts.scheme, parts.netloc,
-                           parts.path, parts.params,
+        return urlunparse((parts.scheme, parts.netloc, parts.path, parts.params,
                            urlencode(query, doseq=True), parts.fragment))
-
-
-class UserNotAuthenticated(OAuth2RedirectError):
-    error_code = None
 
 
 class InvalidRequest(OAuth2RedirectError):
@@ -95,3 +90,11 @@ class InvalidRequest(OAuth2RedirectError):
 
 class UnsupportedResponseType(OAuth2RedirectError):
     error_code = 'unsupported_response_type'
+
+
+class UserInteractionError(OAuth2RedirectError):
+    pass
+
+
+class UserNotAuthenticated(UserInteractionError):
+    error_code = None
