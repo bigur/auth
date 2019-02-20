@@ -8,13 +8,14 @@ from logging import getLogger
 from typing import Dict, Optional
 from uuid import uuid4
 
+from bigur.auth.model.abc import AbstractUser
 from bigur.auth.model.base import Object
 
 logger = getLogger(__name__)
 
 
 @dataclass
-class User(Object):
+class User(Object, AbstractUser):
     username: str
     crypt: str = field(init=False, repr=False)
     salt: str = field(init=False, repr=False)

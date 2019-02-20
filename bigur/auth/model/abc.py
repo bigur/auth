@@ -3,10 +3,15 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 
-class User(ABC):
+class AbstractUser(ABC):
+
+    @abstractmethod
+    def get_id(self) -> Optional[Union[int, str]]:
+        '''Returns user's id.'''
+        raise NotImplementedError
 
     @abstractmethod
     def set_password(self, password: str) -> None:
@@ -25,14 +30,18 @@ class User(ABC):
         raise NotImplementedError
 
 
-class Client(ABC):
-    pass
-
-
-class Provider(ABC):
+class AbstractClient(ABC):
 
     @abstractmethod
-    async def get_id(self) -> Union[int, str]:
+    def get_id(self) -> Optional[Union[int, str]]:
+        '''Returns client's id.'''
+        raise NotImplementedError
+
+
+class AbstractProvider(ABC):
+
+    @abstractmethod
+    def get_id(self) -> Optional[Union[int, str]]:
         '''Return provider's id.'''
         raise NotImplementedError
 

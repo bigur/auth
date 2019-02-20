@@ -7,11 +7,12 @@ from typing import Dict, List, Optional
 
 from aiohttp import ClientSession
 
+from bigur.auth.model.abc import AbstractProvider
 from bigur.auth.model.base import Object
 
 
 @dataclass
-class Provider(Object):
+class Provider(Object, AbstractProvider):
     issuer: str
     authorization_endpoint: str
     token_endpoint: str
@@ -30,19 +31,38 @@ class Provider(Object):
     client_secret: str
     keys: Optional[Dict[str, Dict[str, str]]] = None
 
+    def get_authorization_endpoint(self):
+        return self.authorization_endpoint
+
+    def get_token_endpoint(self):
+        return self.token_endpoint
+
+    def get_response_types_supported(self):
+        if not self.response_types_supported:
+            return []
+        return self.response_types_supported
+
+    def get_scopes_supported(self):
+        if not self.scopes_supported:
+            return []
+        return self.scopes_supported
+
+    def get_client_id(self):
+        return self.client_id
+
+    def get_client_secret(self):
+        return self.client_secret
+
+    def get_key(self, kid: str) -> Dict[str, str]:
+        if self.keys:
+            return self.keys[kid]
+        raise KeyError('Key with kid {} not found'.format(kid))
+
     async def update_keys(self):
         async with ClientSession() as session:
             async with session.get(self.jwks_uri) as response:
                 keys = (await response.json())['keys']
                 self.keys = {x['kid']: x for x in keys}
-
-    async def get_key(self, kid: str) -> Dict[str, str]:
-        if self.keys:
-            return self.keys[kid]
-        raise KeyError('Key with kid {} not found'.format(kid))
-
-    async def get_authorization_endpoint(self):
-        return self.authorization_endpoint
 
     def __str__(self):
         return '<{}({})>'.format(type(self).__name__, self.id)
