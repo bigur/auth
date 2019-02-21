@@ -74,7 +74,7 @@ class TestOIDCAuthorizationEndpoint(object):
 
     @mark.db_configured
     @mark.asyncio
-    async def test_redirect_to_login_form(self, cli, debug):
+    async def test_redirect_to_login_form(self, cli):
         response = await cli.post(
             '/auth/authorize',
             data={
