@@ -44,7 +44,23 @@ def app():
         view('/auth/authorize', AuthorizeView),
     ])
     app['config'] = Kaptan()
-    app['config'].import_config({'authn': {}})
+    app['config'].import_config({
+        'http_server': {
+            'endpoints': {
+                'login': {
+                    'path': '/auth/login'
+                }
+            }
+        },
+        'authn': {
+            'cookie': {
+                'secure': False,
+                'session_name': 'sid',
+                'id_name': 'uid',
+                'lifetime': 3600
+            }
+        }
+    })
 
     app['cookie_key'] = urandom(32)
 

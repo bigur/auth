@@ -24,19 +24,14 @@ class UserPass(AuthN):
     '''End-user login & password authentication'''
 
     async def authenticate(self):
-        if self.request.method == 'GET':
-            params = self.request.query.copy()
-        elif self.request.method == 'POST':
-            params = (await self.request.post()).copy()
-        else:
-            raise ValueError('Unsupported http method: %s', self.request.method)
-
-        params['next'] = self.request.path
-        redirect_uri = config.get(
-            'user_pass', 'login_endpoint', fallback='/auth/login')
+        request = self.request
+        params = request['oauth2_request'].asdict()
+        params['next'] = request.path
+        redirect_uri = request.app['config'].get(
+            'http_server.endpoints.login.path')
         raise UserNotAuthenticated(
             'Authentication required',
-            self.request,
+            request,
             redirect_uri=redirect_uri,
             params=params)
 
@@ -61,8 +56,9 @@ class UserPass(AuthN):
             # Finding user
             logger.debug('Try to find user %s in store', username)
 
-            user = await User.find_one({'username': username})
-            if user is None:
+            try:
+                user = self.request.app['store'].users.get_by_username(username)
+            except KeyError:
                 logger.warning('User {} not found'.format(username))
             else:
                 if user.verify_password(password):
@@ -88,7 +84,7 @@ class UserPass(AuthN):
                                          urlencode(post, doseq=True),
                                          url.raw_fragment))
                             })
-                        response.set_status(303, 'See Other')
+                        # response.set_status(303, 'See Other')
 
                     # Set cookie
                     self.set_cookie(self.request, response, user.id)

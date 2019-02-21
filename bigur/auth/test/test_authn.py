@@ -44,7 +44,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_no_such_user(self, cli, database):
+    async def test_no_such_user(self, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -59,7 +59,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_incorrect(self, cli, database):
+    async def test_login_incorrect(self, cli):
         response = await cli.post(
             '/auth/login', data={
                 'username': 'admin',
@@ -72,7 +72,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_successful(self, cli, user, debug):
+    async def test_login_successful(self, cli, user):
         response = await cli.post(
             '/auth/login',
             data={
@@ -93,7 +93,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_set_cookie(self, app, cli, user, debug):
+    async def test_set_cookie(self, app, cli, user):
         response = await cli.post(
             '/auth/login',
             data={
@@ -105,7 +105,7 @@ class TestUserPass:
 
         assert response.status == 303
         assert 'Set-Cookie' in response.headers
-        cookie = response.cookies['oidc']
+        cookie = response.cookies['uid']
 
         value = urlsafe_b64decode(cookie.value)
         iv, data = value.split(b':', maxsplit=1)
@@ -139,7 +139,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_without_next(self, cli, user, debug):
+    async def test_login_without_next(self, cli, user):
         response = await cli.post(
             '/auth/login',
             data={
