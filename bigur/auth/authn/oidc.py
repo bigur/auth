@@ -7,13 +7,12 @@ from dataclasses import asdict
 from json import dumps, loads
 from hashlib import sha256
 from logging import getLogger
-from typing import Dict, List, Union
-from urllib.parse import parse_qs, urlencode
+from typing import List, Union
+from urllib.parse import urlencode
 
 from aiohttp import ClientSession, ClientError
 from aiohttp.web import Response
-from aiohttp.web_exceptions import (HTTPSeeOther, HTTPBadRequest,
-                                    HTTPUnauthorized)
+from aiohttp.web_exceptions import HTTPSeeOther, HTTPBadRequest
 from aiohttp_jinja2 import render_template
 from jwt import decode, get_unverified_header, DecodeError
 from jwt.algorithms import get_default_algorithms
@@ -41,7 +40,7 @@ class RegistrationNeeded(ProviderError):
 
 class OpenIDConnect(AuthN):
 
-    def domain_from_acr_values(self, acr_values: Union[List[str], str]) -> str:
+    def get_domain_from_acr(self, acr_values: Union[List[str], str]) -> str:
         if isinstance(acr_values, str):
             acr_values = [x for x in acr_values.split(' ') if x]
 
@@ -103,6 +102,12 @@ class OpenIDConnect(AuthN):
             provider = await self.create_provider(domain)
         return provider
 
+    async def link_user_with_oidc(self, user_id, provider_id, subject):
+        store = self.request.app['store']
+        user = await store.users.get(user_id)
+        user.add_oidc_account(provider_id, subject)
+        await store.users.save(user)
+
     @property
     def endpoint_uri(self) -> str:
         return '{}://{}{}'.format(
@@ -110,18 +115,19 @@ class OpenIDConnect(AuthN):
             self.request.app['config'].get('http_server.endpoints.oidc.path'))
 
     async def authenticate(self):
-        req = self.request
-        areq = req['oauth2_request']
+        request = self.request
+        arequest = request['oauth2_request']
         try:
-            domain = self.domain_from_acr_values(areq.acr_values)
+            domain = self.get_domain_from_acr(arequest.acr_values)
         except ValueError as e:
-            raise InvalidParameter(str(e), req)
+            raise InvalidParameter(str(e), request)
 
         try:
-            params = {k: v for k, v in asdict(areq).items() if v is not None}
+            params = {
+                k: v for k, v in asdict(arequest).items() if v is not None
+            }
 
             provider = await self.get_provider(domain)
-
             logger.debug('Using provider %s', provider)
 
             authorization_endpoint = provider.get_authorization_endpoint()
@@ -143,32 +149,22 @@ class OpenIDConnect(AuthN):
             scopes = ' '.join(
                 list({'openid'} | {'email', 'profile'} & set(scopes)))
 
-            key = req.app['cookie_key']
-            sid = req['sid']
-            nonce = sha256(req['sid'].encode('utf-8')).hexdigest()
-            state = crypt(
-                key, dumps({
-                    's': sid,
-                    'n': nonce,
-                    'u': req.path,
-                    'p': params
-                }))
+            nonce = sha256(request['sid'].encode('utf-8')).hexdigest()
 
         except ProviderError as e:
             reason = str(e)
-            redirect_uri = req.app['config'].get(
-                'http_server.endpoints.login.path')
 
             raise UserNotAuthenticated(
                 reason,
-                req,
-                redirect_uri=redirect_uri,
+                request,
+                redirect_uri=request.app['config'].get(
+                    'http_server.endpoints.login.path'),
                 params={
                     'error':
                         'bigur_oidc_provider_error',
                     'error_description':
                         reason,
-                    'next': ('{}/{}'.format(req.path,
+                    'next': ('{}?{}'.format(request.path,
                                             urlencode(query=params,
                                                       doseq=True)))
                 })
@@ -176,67 +172,103 @@ class OpenIDConnect(AuthN):
         else:
             raise UserNotAuthenticated(
                 'Authentication required',
-                req,
+                request,
                 redirect_uri=authorization_endpoint,
                 params={
-                    'redirect_uri': self.endpoint_uri,
-                    'client_id': client_id,
-                    'state': urlsafe_b64encode(state).decode('utf-8'),
-                    'scope': scopes,
-                    'response_type': 'code',
-                    'nonce': nonce
+                    'redirect_uri':
+                        self.endpoint_uri,
+                    'client_id':
+                        client_id,
+                    'state':
+                        urlsafe_b64encode(
+                            crypt(
+                                request.app['cookie_key'],
+                                dumps({
+                                    'n': nonce,
+                                    'u': request.path,
+                                    'p': params
+                                }))).decode('utf-8'),
+                    'scope':
+                        scopes,
+                    'response_type':
+                        'code',
+                    'nonce':
+                        nonce
                 })
 
     async def get(self) -> Response:
-        req = self.request
-        if 'state' not in req.query:
+        request = self.request
+        config = self.request.app['config']
+
+        # Decode state parameter
+        if 'state' not in request.query:
             raise HTTPBadRequest(reason='No state parameter in request')
 
         try:
             state = loads(
-                decrypt(req.app['cookie_key'],
-                        urlsafe_b64decode(req.query['state'])).decode('utf-8'))
+                decrypt(request.app['cookie_key'],
+                        urlsafe_b64decode(
+                            request.query['state'])).decode('utf-8'))
 
         except ValueError:
             raise HTTPBadRequest(reason='Can\'t decode state')
 
-        if state['s'] != req['sid']:
-            raise HTTPUnauthorized(reason='Authentication required')
+        logger.debug('Request state: %s', state)
 
-        logger.debug('First request parameters: %s', state['p'])
+        domain = self.get_domain_from_acr(state['p']['acr_values'])
+        provider = await self.get_provider(domain)
 
+        return_uri = ('{}?{}'.format(state['u'],
+                                     urlencode(query=state['p'], doseq=True)))
+
+        # There is id token in state and user authenticated, so just make
+        # relationship existing user with oidc account.
+        userid = request.get('user')
+        if 't' in state and userid:
+            logger.debug('Id token provided, make relation '
+                         'with user %s', userid)
+
+            await self.link_user_with_oidc(userid, provider.id,
+                                           state['t']['sub'])
+
+            return Response(
+                status=303,
+                reason='See Other',
+                charset='utf-8',
+                headers={'Location': return_uri})
+
+        # Overwise it is callback with code from oidc provider
         try:
             try:
-                code = req.query['code']
+                code = request.query['code']
             except KeyError:
-                raise InvalidParameter('No code provided', req)
+                raise InvalidParameter('No code provided', request)
 
-            domain = self.domain_from_acr_values(state['p']['acr_values'][0])
-            provider = await self.get_provider(domain)
-
-            token_endpoint = provider.get_token_endpoint()
-            if token_endpoint is None:
-                raise InvalidParameter('Provider has no token endpoint', req)
+            try:
+                token_endpoint = provider.get_token_endpoint()
+            except AttributeError:
+                raise InvalidParameter('No token endpoint', request)
 
             response_types = provider.get_response_types_supported()
-            if ('id_token' not in response_types):
-                raise InvalidParameter('Id token not supported by provider',
-                                       req)
+            if 'id_token' not in response_types:
+                raise InvalidParameter('Id token not supported', request)
 
-            client_id = provider.get_client_id()
-            client_secret = provider.get_client_secret()
-
-            data = {
-                'redirect_uri': self.endpoint_uri,
-                'code': code,
-                'client_id': client_id,
-                'client_secret': client_secret,
-                'grant_type': 'authorization_code'
-            }
+            try:
+                client_id = provider.get_client_id()
+                client_secret = provider.get_client_secret()
+            except AttributeError:
+                raise InvalidParameter('Invalid client credentials', request)
 
             logger.debug('Getting id_token from %s', token_endpoint)
             async with ClientSession() as session:
                 try:
+                    data = {
+                        'redirect_uri': self.endpoint_uri,
+                        'code': code,
+                        'client_id': client_id,
+                        'client_secret': client_secret,
+                        'grant_type': 'authorization_code'
+                    }
                     async with session.post(token_endpoint, data=data) as resp:
                         if resp.status != 200:
                             body = await resp.text()
@@ -245,27 +277,31 @@ class OpenIDConnect(AuthN):
                             raise InvalidParameter(
                                 'Can\'t obtain token: {}'.format(resp.status),
                                 self.request)
-                        data = await resp.json()
-                        if 'id_token' not in data:
-                            raise InvalidParameter('Provider not return token',
-                                                   req)
-                except ClientError:
-                    raise InvalidParameter('Can\'t get token', req)
+                        token_obj = await resp.json()
 
-            if str(data.get('token_type', '')).lower() != 'bearer':
-                raise InvalidParameter('Invalid token type provided', req)
+                except ClientError:
+                    raise InvalidParameter('Can\'t get token', request)
+
+            if not isinstance(token_obj, dict):
+                raise InvalidParameter('Invalid response', request)
+
+            if 'id_token' not in token_obj:
+                raise InvalidParameter('Provider not return token', request)
+
+            if str(token_obj.get('token_type', '')).lower() != 'bearer':
+                raise InvalidParameter('Invalid token type', request)
 
             try:
-                header = get_unverified_header(data['id_token'])
+                header = get_unverified_header(token_obj['id_token'])
                 logger.debug('Key header: %s', header)
             except DecodeError:
-                raise InvalidParameter('Can\'t decode token', req)
+                raise InvalidParameter('Can\'t decode token', request)
 
             try:
                 alg = get_default_algorithms()[header['alg']]
             except KeyError:
                 logger.error('Algorythm %s is not supported', header['alg'])
-                raise InvalidParameter('Key algorytm not supported', req)
+                raise InvalidParameter('Key algorytm not supported', request)
 
             try:
                 key = provider.get_key(header['kid'])
@@ -278,37 +314,33 @@ class OpenIDConnect(AuthN):
                     logger.warning(str(e))
                     raise InvalidParameter(
                         'Can\'t get key with kid'
-                        ' {}'.format(header['kid']), req)
+                        ' {}'.format(header['kid']), request)
 
             try:
                 key = alg.from_jwk(dumps(key))
             except InvalidKeyError:
-                raise InvalidParameter('Can\'t decode key', req)
+                raise InvalidParameter('Can\'t decode key', request)
 
             try:
-                payload = decode(data['id_token'], key, audience=client_id)
+                payload = decode(token_obj['id_token'], key, audience=client_id)
             except DecodeError:
-                raise InvalidParameter('Can\'t decode token', req)
+                raise InvalidParameter('Can\'t decode token', request)
 
             logger.debug('Token id payload: %s', payload)
 
             if payload['nonce'] != state['n']:
-                raise InvalidParameter('Can\'t verify nonce', req)
+                raise InvalidParameter('Can\'t verify nonce', request)
 
             if 'sub' not in payload:
-                raise InvalidParameter('Invalid token', req)
+                raise InvalidParameter('Invalid token', request)
 
         except InvalidParameter as e:
             raise HTTPSeeOther('{}?{}'.format(
-                self.request.app['config'].get(
-                    'http_server.endpoints.login.path'),
+                config.get('http_server.endpoints.login.path'),
                 urlencode({
-                    'error':
-                        'bigur_oidc_provider_error',
-                    'error_description':
-                        str(e),
-                    'next': ('{}?{}'.format(state['u'],
-                                            urlencode(state['p'], doseq=True)))
+                    'error': 'bigur_oidc_provider_error',
+                    'error_description': str(e),
+                    'next': return_uri
                 })))
 
         else:
@@ -317,8 +349,23 @@ class OpenIDConnect(AuthN):
                     provider.get_id(), payload['sub'])
             except KeyError:
                 logger.warning('User %s:%s not found', domain, payload['sub'])
-                context: Dict[str, str] = {}
-                return render_template('oidc_user_not_exists.j2', req, context)
+
+                state['t'] = payload
+
+                template = 'oidc_user_not_exists.j2'
+                context = {
+                    'login_endpoint':
+                        config.get('http_server.endpoints.login.path'),
+                    'registration_endpoint':
+                        config.get('http_server.endpoints.registration.path'),
+                    'next':
+                        self.endpoint_uri,
+                    'state':
+                        urlsafe_b64encode(
+                            crypt(request.app['cookie_key'],
+                                  dumps(state))).decode('utf-8')
+                }
+                return render_template(template, request, context)
 
         response = Response(
             status=303,
@@ -326,6 +373,6 @@ class OpenIDConnect(AuthN):
             charset='utf-8',
             headers={'Location': return_uri})
 
-        self.set_cookie(req, response, user.get_id())
+        self.set_cookie(request, response, user.get_id())
 
         return response
