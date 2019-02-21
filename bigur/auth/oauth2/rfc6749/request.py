@@ -2,7 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from logging import getLogger
 from typing import Type
 
@@ -15,7 +15,16 @@ logger = getLogger(__name__)
 
 @dataclass
 class OAuth2Request:
-    pass
+
+    def asdict(self, *, dict_factory=dict):
+        result = dict_factory()
+        for k, v in asdict(self).items():
+            if v is None:
+                continue
+            if isinstance(v, list) and not v:
+                continue
+            result[k] = v
+        return result
 
 
 async def create_request(cls: Type, http_request: Request) -> Request:
