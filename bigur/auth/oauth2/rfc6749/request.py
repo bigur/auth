@@ -27,13 +27,13 @@ class OAuth2Request:
         return result
 
 
-async def create_request(cls: Type, http_request: Request) -> Request:
-    if http_request.method == 'GET':
-        params = http_request.query
-    elif http_request.method == 'POST':
-        params = await http_request.post()
+async def create_request(cls: Type, request: Request) -> Request:
+    if request.method == 'GET':
+        params = request.query
+    elif request.method == 'POST':
+        params = await request.post()
     else:
-        ValueError('Unsupported method %s', http_request.method)
+        ValueError('Unsupported method %s', request.method)
 
     try:
         kwargs = {
@@ -41,11 +41,11 @@ async def create_request(cls: Type, http_request: Request) -> Request:
             for key in cls.__dataclass_fields__
             if key in params
         }
-        http_request['oauth2_request'] = cls(**kwargs)
+        request['oauth2_request'] = cls(**kwargs)
 
     except TypeError as e:
         msg = str(e)[11:].capitalize().replace(' positional', '')
-        raise ParameterRequired(msg, http_request=http_request)
+        raise ParameterRequired(msg, request=request)
 
     else:
-        return http_request
+        return request

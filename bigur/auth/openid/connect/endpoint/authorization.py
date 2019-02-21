@@ -34,6 +34,6 @@ class AuthorizationRequest(OAuth2AuthorizationRequest):
             self.acr_values = [x.strip() for x in self.acr_values.split(' ')]
 
 
-async def create_oidc_request(http_request: Request):
+async def create_oidc_request(request: Request):
     logger.debug('Creating OIDC Authorization request object')
-    return await create_request(AuthorizationRequest, http_request)
+    return await create_request(AuthorizationRequest, request)

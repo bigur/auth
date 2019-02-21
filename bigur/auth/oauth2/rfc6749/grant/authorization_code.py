@@ -8,12 +8,10 @@ from aiohttp.web import Request, Response
 
 from bigur.auth.oauth2.rfc6749.errors import UnsupportedResponseType
 
-
 logger = getLogger(__name__)
 
 
-async def authorization_code_grant(http_request: Request) -> Response:
+async def authorization_code_grant(request: Request) -> Response:
     logger.warning('Authorization code grant stub')
     raise UnsupportedResponseType(
-        'Authorization code grant is not implemented yet',
-        http_request=http_request)
+        'Authorization code grant is not implemented yet', request=request)

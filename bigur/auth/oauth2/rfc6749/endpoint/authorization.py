@@ -11,7 +11,6 @@ from aiohttp.web import Request
 from bigur.auth.oauth2.rfc6749.errors import InvalidRequest
 from bigur.auth.oauth2.rfc6749.request import OAuth2Request
 
-
 logger = getLogger(__name__)
 
 
@@ -20,13 +19,13 @@ class AuthorizationRequest(OAuth2Request):
     pass
 
 
-async def create_oauth2_request(http_request: Request):
+async def create_oauth2_request(request: Request):
     logger.debug('Creating request from POST method')
     # XXX: ignore unneeded parameters
     try:
-        http_request['oauth2_request'] = AuthorizationRequest(
-            **(await http_request.post()))
+        request['oauth2_request'] = AuthorizationRequest(
+            **(await request.post()))
     except TypeError as e:
         raise InvalidRequest(str(e)[11:])
     else:
-        return http_request
+        return request
