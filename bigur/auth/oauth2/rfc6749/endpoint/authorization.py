@@ -4,7 +4,6 @@ __licence__ = 'For license information see LICENSE'
 
 from dataclasses import dataclass
 from logging import getLogger
-from typing import List, Optional
 
 from aiohttp.web import Request
 
@@ -23,8 +22,9 @@ async def create_oauth2_request(request: Request):
     logger.debug('Creating request from POST method')
     # XXX: ignore unneeded parameters
     try:
-        request['oauth2_request'] = AuthorizationRequest(
-            **(await request.post()))
+        kwargs = await request.post()
+        request['oauth2_request'] = AuthorizationRequest(  # type: ignore
+            **(kwargs))
     except TypeError as e:
         raise InvalidRequest(str(e)[11:])
     else:
