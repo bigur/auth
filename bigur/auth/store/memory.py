@@ -46,6 +46,12 @@ class UsersCollection(Collection, abc.UsersCollection[User, str]):
         await self.put(user)
         return user
 
+    def get_by_username(self, username: str) -> User:
+        for v in self._db.values():
+            if v.username == username:
+                return v
+        raise KeyError('User not found')
+
     async def get_by_oidp(self, provider_id: str, user_id: str) -> User:
         for v in self._db.values():
             if 'accounts' in v and 'oidc' in v['accounts']:

@@ -37,6 +37,10 @@ class ProvidersCollection(Collection[T, K]):
 class UsersCollection(Collection[T, K]):
 
     @abstractmethod
+    def get_by_username(self, username: str) -> T:
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_by_oidp(self, provider_id: K, user_id: str) -> T:
         raise NotImplementedError
 
