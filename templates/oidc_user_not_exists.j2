@@ -3,6 +3,18 @@
 </head>
 <body>
 User not registered!
-You can register or login!
+
+<form action="{{login_endpoint}}">
+<input type="hidden" name="state" value="{{state}}">
+<input type="hidden" name="next" value="{{next}}">
+<input type="submit" value="Use existing account">
+<form>
+
+<form action="{{register_endpoint}}">
+<input type="hidden" name="state" value="{{state}}">
+<input type="hidden" name="next" value="{{next}}">
+<input type="submit" value="Register new account">
+<form>
+
 </body>
 </html>
