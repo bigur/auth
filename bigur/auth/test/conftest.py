@@ -97,7 +97,7 @@ async def aclient(app, user):
 
 
 @fixture
-async def login(database, user, cli):
+async def login(user, cli):
     response = await cli.post(
         '/auth/login',
         data={
