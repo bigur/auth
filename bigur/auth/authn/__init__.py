@@ -32,6 +32,8 @@ async def authenticate_end_user(request: Request) -> Request:
         # XXX: Remove cookie if expired
         logger.warning('Check cookie expirity stub')
 
+        request['user'] = userid
+
     # If no valid cookie, try to authenticate user
     if value is None:
         logger.debug('Cookie is not set, detecting authn method')
