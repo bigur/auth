@@ -4,7 +4,7 @@ __licence__ = 'For license information see LICENSE'
 
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 from dataclasses import asdict
-from json import dumps
+from json import dumps, loads
 from hashlib import sha256
 from logging import getLogger
 from typing import Dict, List, Union
@@ -118,13 +118,7 @@ class OpenIDConnect(AuthN):
             raise InvalidParameter(str(e), req)
 
         try:
-            return_uri = '{}?{}'.format(
-                req.path,
-                urlencode(
-                    query={
-                        k: v for k, v in asdict(areq).items() if v is not None
-                    },
-                    doseq=True))
+            params = {k: v for k, v in asdict(areq).items() if v is not None}
 
             provider = await self.get_provider(domain)
 
@@ -152,7 +146,13 @@ class OpenIDConnect(AuthN):
             key = req.app['cookie_key']
             sid = req['sid']
             nonce = sha256(req['sid'].encode('utf-8')).hexdigest()
-            state = crypt(key, '{}|{}|{}'.format(sid, nonce, return_uri))
+            state = crypt(
+                key, dumps({
+                    's': sid,
+                    'n': nonce,
+                    'u': req.path,
+                    'p': params
+                }))
 
         except ProviderError as e:
             reason = str(e)
@@ -164,9 +164,13 @@ class OpenIDConnect(AuthN):
                 req,
                 redirect_uri=redirect_uri,
                 params={
-                    'error': 'bigur_oidc_provider_error',
-                    'error_description': reason,
-                    'next': return_uri
+                    'error':
+                        'bigur_oidc_provider_error',
+                    'error_description':
+                        reason,
+                    'next': ('{}/{}'.format(req.path,
+                                            urlencode(query=params,
+                                                      doseq=True)))
                 })
 
         else:
@@ -189,19 +193,17 @@ class OpenIDConnect(AuthN):
             raise HTTPBadRequest(reason='No state parameter in request')
 
         try:
-            state = decrypt(req.app['cookie_key'],
-                            urlsafe_b64decode(
-                                req.query['state'])).decode('utf-8')
+            state = loads(
+                decrypt(req.app['cookie_key'],
+                        urlsafe_b64decode(req.query['state'])).decode('utf-8'))
 
         except ValueError:
             raise HTTPBadRequest(reason='Can\'t decode state')
 
-        sid, nonce, return_uri = state.split('|')
-        if sid != req['sid']:
+        if state['s'] != req['sid']:
             raise HTTPUnauthorized(reason='Authentication required')
 
-        params = parse_qs(return_uri)
-        logger.debug('First request parameters: %s', params)
+        logger.debug('First request parameters: %s', state['p'])
 
         try:
             try:
@@ -209,7 +211,7 @@ class OpenIDConnect(AuthN):
             except KeyError:
                 raise InvalidParameter('No code provided', req)
 
-            domain = self.domain_from_acr_values(params['acr_values'][0])
+            domain = self.domain_from_acr_values(state['p']['acr_values'][0])
             provider = await self.get_provider(domain)
 
             token_endpoint = provider.get_token_endpoint()
@@ -248,7 +250,7 @@ class OpenIDConnect(AuthN):
                             raise InvalidParameter('Provider not return token',
                                                    req)
                 except ClientError:
-                    raise InvalidParameter('Ca\'t get token', req)
+                    raise InvalidParameter('Can\'t get token', req)
 
             if str(data.get('token_type', '')).lower() != 'bearer':
                 raise InvalidParameter('Invalid token type provided', req)
@@ -290,7 +292,7 @@ class OpenIDConnect(AuthN):
 
             logger.debug('Token id payload: %s', payload)
 
-            if payload['nonce'] != nonce:
+            if payload['nonce'] != state['n']:
                 raise InvalidParameter('Can\'t verify nonce', req)
 
             if 'sub' not in payload:
@@ -301,9 +303,12 @@ class OpenIDConnect(AuthN):
                 self.request.app['config'].get(
                     'http_server.endpoints.login.path'),
                 urlencode({
-                    'error': 'bigur_oidc_provider_error',
-                    'error_description': str(e),
-                    'next': return_uri
+                    'error':
+                        'bigur_oidc_provider_error',
+                    'error_description':
+                        str(e),
+                    'next': ('{}?{}'.format(state['u'],
+                                            urlencode(state['p'], doseq=True)))
                 })))
 
         else:
