@@ -3,14 +3,12 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
-from typing import Dict
 from urllib.parse import urlunparse, urlencode
 
 from aiohttp.web import Response
 from aiohttp.web_exceptions import (HTTPBadRequest)
 from aiohttp_jinja2 import render_template
 
-from bigur.auth.model import User
 from bigur.auth.oauth2.rfc6749.errors import UserNotAuthenticated
 
 from bigur.auth.authn.base import AuthN
@@ -36,16 +34,26 @@ class UserPass(AuthN):
             params=params)
 
     async def get(self) -> Response:
-        context: Dict[str, str] = {}
+        config = self.request.app['config']
+        query = self.request.query
+        context = {
+            'endpoint': config.get('http_server.endpoints.login.path'),
+            'query': query,
+            'error': query.get('error'),
+            'error_description': query.get('error_description'),
+        }
         return render_template('login_form.j2', self.request, context)
 
     async def post(self) -> Response:
-        post = (await self.request.post()).copy()
+        query = await self.request.post()
 
-        if ('username' in post and 'password' in post):
+        error = None
+        error_description = None
+
+        if ('username' in query and 'password' in query):
             # Check incoming parameters
-            username = str(post.pop('username')).strip()
-            password = str(post.pop('password')).strip()
+            username = str(query.get('username')).strip()
+            password = str(query.get('password')).strip()
 
             # Check fields too long
             if (len(username) > FIELD_LENGTH or len(password) > FIELD_LENGTH):
@@ -60,18 +68,20 @@ class UserPass(AuthN):
                 user = self.request.app['store'].users.get_by_username(username)
             except KeyError:
                 logger.warning('User {} not found'.format(username))
+                error = 'bigur_invalid_login'
+                error_description = 'Invalid login or password'
             else:
                 if user.verify_password(password):
                     # Login successful
                     logger.debug('Login for user %s successful', username)
 
                     # No next parameter, no way to redirect
-                    if 'next' not in post:
+                    if 'next' not in query:
                         response = Response(text='Login successful')
 
                     # Redirecting
                     else:
-                        next_uri = post.pop('next')
+                        next_uri = query.pop('next')
                         url = self.request.url
                         response = Response(
                             status=303,
@@ -81,10 +91,9 @@ class UserPass(AuthN):
                                 'Location':
                                     urlunparse(
                                         (url.scheme, url.raw_host, next_uri, '',
-                                         urlencode(post, doseq=True),
+                                         urlencode(query, doseq=True),
                                          url.raw_fragment))
                             })
-                        # response.set_status(303, 'See Other')
 
                     # Set cookie
                     self.set_cookie(self.request, response, user.id)
@@ -93,7 +102,19 @@ class UserPass(AuthN):
 
                 logger.warning(
                     'Password is incorrect for user {}'.format(username))
+                error = 'bigur_invalid_login'
+                error_description = 'Invalid login or password'
 
         # Show form
-        context: Dict[str, str] = {}
+        context = {
+            'endpoint':
+                self.request.app['config'].get(
+                    'http_server.endpoints.login.path'),
+            'query':
+                query,
+            'error':
+                error,
+            'error_description':
+                error_description
+        }
         return render_template('login_form.j2', self.request, context)

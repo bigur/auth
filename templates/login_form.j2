@@ -3,19 +3,20 @@
     </head>
     <body>
         <p>Please enter username and password!</p>
-        <form action="/login" method="POST">
-            <input type="text" name="username">
+        <form action="{{endpoint}}" method="post">
+            <input type="text" name="username" value="{{ query.username | urlencode}}">
             <input type="password" name="password">
+            {% for key in ['next', 'state'] %}
+                <input type="hidden" name="{{key}}" value="{{query[key] | urlencode}}">
+            {% endfor %}
             <input type="submit" value="submit">
-            <input type="hidden" name="next" value="{{ next | urlencode}}">
-            <input type="hidden" name="state" value="{{ state | urlencode}}">
         </form>
-        <div>{{error}} {{error_description}}</div>
+        {% if error %}
+            <div>
+                <span>{{error}}</span>
+                <span>{{error_description}}</span>
+            </div>
+        {% endif %}
+
     </body>
 </html>
-{% if error %}
-<!--
-HTTP Status Code: {{error}}
-HTTP Message: {{error_description}}
--->
-{% endif %}

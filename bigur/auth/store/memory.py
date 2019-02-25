@@ -5,7 +5,7 @@ __licence__ = 'For license information see LICENSE'
 from typing import Any, Dict
 from uuid import uuid4
 
-from bigur.auth.model import Object, Provider, User
+from bigur.auth.model import Object, Provider, User, Human
 from bigur.auth.store import abc
 
 
@@ -41,8 +41,11 @@ class ProvidersCollection(Collection, abc.ProvidersCollection[Provider, str]):
 
 class UsersCollection(Collection, abc.UsersCollection[User, str]):
 
-    async def create(self, **kwargs) -> User:
-        user = User(**kwargs)
+    async def create(self, *, human=True, **kwargs) -> User:
+        if human:
+            user = Human(**kwargs)
+        else:
+            user = User(**kwargs)
         await self.put(user)
         return user
 
@@ -54,8 +57,8 @@ class UsersCollection(Collection, abc.UsersCollection[User, str]):
 
     async def get_by_oidp(self, provider_id: str, user_id: str) -> User:
         for v in self._db.values():
-            if 'accounts' in v and 'oidc' in v['accounts']:
-                if v['accounts'][provider_id] == user_id:
+            if 'oidc' in getattr(v, 'accounts', []):
+                if v.accounts[provider_id] == user_id:
                     return v
         raise KeyError('User not found')
 

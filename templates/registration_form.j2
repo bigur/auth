@@ -1,0 +1,21 @@
+<html>
+    <head></head>
+    <body>
+        <p>User registration</p>
+        <form action="{{endpoint}}" method="post">
+            <div>Login: <input type="text" name="username"></div>
+            <div>Password: <input type="password" name="password"></div>
+            <div>Given name: <input type="text" name="given_name"></div>
+            <div>Patronymic: <input type="text" name="patronymic"></div>
+            <div>Family name: <input type="text" name="family_name"></div>
+
+            {% for key in ['next', 'state'] %}
+                {% if query[key] %}
+                    <input type="hidden" name="{{key}}" value="{{query[key]}}">
+                {% endif %}
+            {% endfor %}
+
+            <div><input type="submit" value="Submit"></div>
+        </form>
+    </body>
+</html>
