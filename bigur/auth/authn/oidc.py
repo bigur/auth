@@ -359,7 +359,7 @@ class OpenIDConnect(AuthN):
                     'registration_endpoint':
                         config.get('http_server.endpoints.registration.path'),
                     'next':
-                        self.endpoint_uri,
+                        config.get('http_server.endpoints.oidc.path'),
                     'state':
                         urlsafe_b64encode(
                             crypt(request.app['cookie_key'],

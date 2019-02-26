@@ -2,7 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from urllib.parse import urlunparse, urlencode
+from urllib.parse import urlencode
 
 from aiohttp.web import Response, View
 from aiohttp_jinja2 import render_template
@@ -37,21 +37,19 @@ class Registration(View):
             response = Response(text='Login successful')
 
         else:
-            next_uri = form.get('next')
-            query = {'state': form.get('state')}
-            url = self.request.url
-            print('!!!', next_uri)
-            print(
-                urlunparse((None, None, next_uri, '',
-                            urlencode(query, doseq=True), url.raw_fragment)))
             response = Response(
                 status=303,
                 reason='See Other',
                 charset='utf-8',
                 headers={
                     'Location':
-                        urlunparse((url.scheme, url.host, next_uri, '',
-                                    urlencode(query, doseq=True),
-                                    url.raw_fragment))
+                        '{}?{}'.format(
+                            form.get('next'),
+                            urlencode({
+                                'state': form.get('state')
+                            }, doseq=True))
                 })
+
+        self.set_cookie(self.request, response, user.get_id())
+
         return response
