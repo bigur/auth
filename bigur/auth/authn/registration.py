@@ -4,11 +4,13 @@ __licence__ = 'For license information see LICENSE'
 
 from urllib.parse import urlencode
 
-from aiohttp.web import Response, View
+from aiohttp.web import Response
 from aiohttp_jinja2 import render_template
 
+from .base import AuthN
 
-class Registration(View):
+
+class Registration(AuthN):
 
     async def get(self):
         context = {

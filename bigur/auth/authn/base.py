@@ -57,7 +57,7 @@ class AuthN(View):
 
         config = request.app['config']
         cookie_name: str = config.get('authn.cookie.id_name')
-        cookie_lifetime: int = config.get('authn.cookie.lifetime')
+        cookie_max_age: int = config.get('authn.cookie.max_age')
         if config.get('authn.cookie.secure'):
             cookie_secure: Optional[str] = 'yes'
         else:
@@ -67,7 +67,7 @@ class AuthN(View):
         response.set_cookie(
             cookie_name,
             value,
-            max_age=cookie_lifetime,
+            max_age=cookie_max_age,
             secure=cookie_secure,
             httponly='yes')
 

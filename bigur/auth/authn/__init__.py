@@ -9,6 +9,7 @@ from aiohttp.web import Request
 
 from .base import decrypt
 from .oidc import OpenIDConnect
+from .registration import Registration  # noqa
 from .user_pass import UserPass
 
 logger = getLogger(__name__)
