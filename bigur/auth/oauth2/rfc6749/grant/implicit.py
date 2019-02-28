@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 
 
 async def implicit_grant(request: Request) -> Request:
-    assert request['oauth2_request'].user is not None, (
+    assert request.get('user') is not None, (
         'User not set in request, do auth first!')
 
     logger.warning('Implicit grant stub')
