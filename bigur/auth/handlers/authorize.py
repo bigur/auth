@@ -51,6 +51,7 @@ class ResultObserver(ObserverBase[Request]):
 
     async def on_completed(self):
         logger.debug('Request process finished')
+        self.response = Response(text='response from on completed')
 
 
 class AuthorizeView(View):
@@ -71,7 +72,8 @@ class AuthorizeView(View):
 
         implicit_grant_branch = (
             base_branch
-            | op.filter(lambda x: 'tok' in x['oauth2_request'].response_type)
+            | op.filter(lambda request: 'id_token' in request['oauth2_request'].
+                        response_type)
             | op.map(implicit_grant))
 
         result_branch = op.concat(implicit_grant_branch)
@@ -80,6 +82,7 @@ class AuthorizeView(View):
         await result_branch.subscribe(result)
 
         await stream.on_next(self.request)
+        await stream.on_completed()
 
         return result.response
 
