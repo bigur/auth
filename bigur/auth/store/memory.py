@@ -57,9 +57,8 @@ class UsersCollection(Collection, abc.UsersCollection[User, str]):
 
     async def get_by_oidp(self, provider_id: str, user_id: str) -> User:
         for v in self._db.values():
-            if 'oidc' in getattr(v, 'accounts', []):
-                if v.accounts[provider_id] == user_id:
-                    return v
+            if v.oidc_accounts and v.oidc_accounts.get(provider_id) == user_id:
+                return v
         raise KeyError('User not found')
 
 
