@@ -103,10 +103,12 @@ class OpenIDConnect(AuthN):
         return provider
 
     async def link_user_with_oidc(self, user_id, provider_id, subject):
+        logger.debug('Linking user %s with account %s:%s', user_id, provider_id,
+                     subject)
         store = self.request.app['store']
         user = await store.users.get(user_id)
         user.add_oidc_account(provider_id, subject)
-        await store.users.save(user)
+        await store.users.put(user)
 
     @property
     def endpoint_uri(self) -> str:
@@ -223,19 +225,27 @@ class OpenIDConnect(AuthN):
 
         # There is id token in state and user authenticated, so just make
         # relationship existing user with oidc account.
-        userid = request.get('user')
-        if 't' in state and userid:
-            logger.debug('Id token provided, make relation '
-                         'with user %s', userid)
 
-            await self.link_user_with_oidc(userid, provider.id,
-                                           state['t']['sub'])
+        if 't' in state:
+            logger.debug('Id token provided in state, checking authn')
 
-            return Response(
-                status=303,
-                reason='See Other',
-                charset='utf-8',
-                headers={'Location': return_uri})
+            # Check cookie
+            cookie = request.cookies.get(config.get('authn.cookie.id_name'))
+            if cookie:
+                logger.debug('Found authn cookie %s', cookie)
+                key = request.app['cookie_key']
+                userid: str = decrypt(key,
+                                      urlsafe_b64decode(cookie)).decode('utf-8')
+                await self.link_user_with_oidc(userid, provider.id,
+                                               state['t']['sub'])
+                return Response(
+                    status=303,
+                    reason='See Other',
+                    charset='utf-8',
+                    headers={'Location': return_uri})
+            else:
+                logger.warning(
+                    'Id token recieved, but authn cookie does not set')
 
         # Overwise it is callback with code from oidc provider
         try:
