@@ -6,8 +6,10 @@ from logging.config import dictConfig
 from os import urandom
 from os.path import basename
 from sys import argv
+from typing import List, Union
 
-from aiohttp.web import Application, run_app, view
+from aiohttp.web import Application, run_app, static, view
+from aiohttp.web import RouteDef, StaticDef
 from aiohttp_jinja2 import setup as jinja_setup
 from jinja2 import FileSystemLoader
 from kaptan import Kaptan
@@ -40,9 +42,11 @@ dictConfig(app['config'].get('logging'))
 logger = getLogger(basename(argv[0]))
 
 # Setup routing
-routes = []
+routes: List[Union[StaticDef, RouteDef]] = []
 for endpoint in app['config'].get('http_server.endpoints').values():
     routes.append(view(endpoint['path'], import_class(endpoint['handler'])))
+for endpoint in app['config'].get('http_server.static', []):
+    routes.append(static(endpoint['prefix'], endpoint['path']))
 app.add_routes(routes)
 
 # Initialize template engine
