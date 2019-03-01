@@ -1,0 +1,208 @@
+@font-face {
+    font-family: 'Gilroy';
+    src: url("/assets/fonts/gilroy/woff2/Gilroy-Regular.woff2") format("woff2"),
+         url("/assets/fonts/gilroy/woff/Gilroy-Regular.woff") format("woff");
+    font-style: normal;
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: 'Gilroy';
+    src: url("/assets/fonts/gilroy/woff2/Gilroy-Bold.woff2") format("woff2"),
+         url("/assets/fonts/gilroy/woff/Gilroy-Bold.woff") format("woff");
+    font-style: normal;
+    font-weight: 700;
+}
+
+html, body {
+    width: 100%;
+}
+
+body {
+    background: #ffffff;
+    font-size: 16px;
+    margin: 0;
+}
+body, input, button {
+    font-family: Gilroy, Arial, Helvetica, sans-serif;
+}
+
+h1 {
+    font-size: 26px;
+    font-weight: normal;
+    margin: 20px 0 10px 0;
+    color: #253555;
+    text-align: center;
+}
+
+a {
+    text-decoration: none;
+    color: #39ac50;
+}
+
+header {
+    margin-bottom: 50px;
+}
+
+.frame {
+    width: 100%;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.menu-line {
+    display: flex;
+    margin-top: 24px;
+    margin-bottom: 14px;
+}
+
+.logo-container {
+    flex: 1 1 auto;
+}
+
+.logo {
+    display: flex;
+}
+
+.sign {
+    font-size: 0;
+    line-height: 0;
+    background: url(/assets/pix/sign-b.png) no-repeat;
+    width: 125px;
+    height: 35px;
+}
+
+.purpose {
+    font-size: 14px;
+    line-height: 14px;
+    margin: 14px 44px 0 44px;
+    white-space: nowrap;
+}
+
+.space {
+    flex: 1 1 100%;
+}
+
+.menu-container {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
+
+
+nav.main {
+    margin: 0;
+    overflow: hidden;
+    font-size: 15px;
+    line-height: 15px;
+    font-weight: bold;
+}
+
+ul.menu-items {
+    padding: 0;
+    margin: 12px 0 8px 0;
+}
+
+ul.menu-items li {
+    display: inline-block;
+    cursor: pointer;
+    color: #ffffff;
+    margin: 0 15px;
+}
+
+ul.menu-items li a {
+    color: #000000;
+}
+
+address {
+    font-size: 14px;
+    font-style: normal;
+    margin: 150px 0 50px 0;
+}
+
+::-webkit-input-placeholder {
+    color: #e5e5e5;
+}
+
+::-moz-placeholder {
+    color: #e5e5e5;
+}
+
+:-moz-placeholder {
+    color: #e5e5e5;
+}
+
+:-ms-input-placeholder {
+    color: #e5e5e5;
+}
+
+:not(output):-moz-ui-invalid,
+.error {
+        border: 1px solid red;
+        box-shadow: none;
+}
+
+.error-box {
+    padding: 10px;
+    box-sizing: border-box;
+    text-align: left;
+    background: #feeff9;
+    border: 1px solid #f2ab99;
+    border-radius: 10px;
+    color: #666666;
+    font-size: 14px;
+}
+
+form, .error-box {
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+input, button {
+    font-size: 100%;
+    display: inline-block;
+    position: relative;
+    box-sizing: border-box;
+    outline: none !important;
+    margin: 20px 0;
+    padding: 10px;
+    color: #000000;
+    border: 1px solid #e5e5e5;
+}
+
+button, button[type=submit] {
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1;
+    background-color: #000000;
+    border: 0;
+    border-radius: 15px;
+    padding: 10px;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.vertical-form input,
+.vertical-form button {
+    display: block;
+    width: 100%;
+}
+
+@media(max-width: 768px) {
+    .frame {
+        width: 100%;
+        padding: 0 10px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 992px) {
+}
+
+@media(min-width: 1200px) {
+    .frame {
+        width: 1180px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0 50px;
+    }
+}

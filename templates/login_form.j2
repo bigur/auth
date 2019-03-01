@@ -1,22 +1,20 @@
-<html>
-    <head>
-    </head>
-    <body>
-        <p>Please enter username and password!</p>
-        <form action="{{endpoint}}" method="post">
-            <input type="text" name="username" value="{{ query.username | urlencode}}">
-            <input type="password" name="password">
+{% extends "main.j2" %}
+{% block header %}Вход в систему{% endblock header %}
+{% block content %}
+    <div style="text-align: center;">
+        {% if error %}
+        <div class="error-box">
+            {{error_description or error}}
+        </div>
+        {% endif %}
+        <form action="{{endpoint}}" method="post" class="vertical-form">
+            <input type="text" autocomplete="username" name="username" placeholder="Имя пользователя" value="{{ query.username | urlencode}}">
+            <input type="password" autocomplete="current-password" placeholder="Пароль" name="password">
             {% for key in ['next', 'state'] %}
                 <input type="hidden" name="{{key}}" value="{{query[key] | urlencode}}">
             {% endfor %}
-            <input type="submit" value="submit">
+            <button type="submit">Войти</button>
+            <a href="/">Забыли пароль?</a>
         </form>
-        {% if error %}
-            <div>
-                <span>{{error}}</span>
-                <span>{{error_description}}</span>
-            </div>
-        {% endif %}
-
-    </body>
-</html>
+    </div>
+{% endblock content %}

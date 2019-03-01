@@ -1,0 +1,49 @@
+<html>
+
+<head>
+    <title>Бигур</title>
+    <meta charset="utf-8">
+    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="stylesheet" href="/assets/auth.css">
+</head>
+
+<body>
+    <header>
+        <div class="frame">
+            <div class="menu-line">
+                <div class="logo-container">
+                    <div class="logo">
+                        <a href="/"><div class="sign"></div></a>
+                    </div>
+                    <div class="purpose">Онлайн платформа для управления организацией</div>
+                </div>
+                <div class="space"></div>
+                <div class="menu-container">
+                    <nav class="main">
+                        <ul class="menu-items">
+                            <li><a href="/">Регистрация</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="frame">
+            <h1>{% block header %}{% endblock header %}</h1>
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+    <footer>
+        <div class="frame">
+            <address>
+                <div>&copy; Бизнес-группа управления развитием</div>
+                <div>Развивая себя, развиваем других</div>
+                <div><a href="mailto:support@bigur.ru">support@bigur.ru</a></div>
+            </address>
+        </div>
+    </footer>
+</body>
+
+</html>
