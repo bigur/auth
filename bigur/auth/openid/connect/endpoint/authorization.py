@@ -9,7 +9,8 @@ from typing import List, Optional
 from aiohttp.web import Request
 
 from bigur.auth.oauth2.rfc6749.endpoint.authorization import (
-    AuthorizationRequest as OAuth2AuthorizationRequest)
+    AuthorizationRequest as OAuth2AuthorizationRequest, AuthorizationResponse as
+    OAuth2AuthorizationResponse)
 from bigur.auth.oauth2.rfc6749.request import create_request
 
 logger = getLogger(__name__)
@@ -34,6 +35,18 @@ class AuthorizationRequest(OAuth2AuthorizationRequest):
             self.acr_values = [x.strip() for x in self.acr_values.split(' ')]
 
 
-async def create_oidc_request(request: Request):
+@dataclass
+class AuthorizationResponse(OAuth2AuthorizationResponse):
+    pass
+
+
+async def create_oidc_request(request: Request) -> Request:
     logger.debug('Creating OIDC Authorization request object')
     return await create_request(AuthorizationRequest, request)
+
+
+async def create_response(request: Request) -> Request:
+    logger.debug('Creating response')
+    response = AuthorizationResponse()
+    request['oauth2_responses'].append(response)
+    return request

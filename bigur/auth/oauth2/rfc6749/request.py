@@ -27,6 +27,11 @@ class OAuth2Request:
         return result
 
 
+@dataclass
+class OAuth2Response:
+    pass
+
+
 async def create_request(cls: Type, request: Request) -> Request:
     if request.method == 'GET':
         params = request.query

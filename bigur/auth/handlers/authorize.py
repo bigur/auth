@@ -16,7 +16,8 @@ from bigur.auth.oauth2.rfc6749.grant import implicit_grant
 from bigur.auth.oauth2.rfc6749.errors import (OAuth2FatalError,
                                               OAuth2RedirectError)
 from bigur.auth.oauth2.rfc6749.validators import (
-    validate_client_id, authorize_client, validate_redirect_uri)
+    validate_client_id, authorize_client, validate_redirect_uri,
+    validate_response_types, validate_scopes)
 from bigur.auth.openid.connect.endpoint.authorization import (
     create_oidc_request)
 
@@ -68,7 +69,10 @@ class AuthorizeView(View):
             | op.map(validate_client_id)
             | op.map(authorize_client)
             | op.map(validate_redirect_uri)
-            | op.map(authenticate_end_user))
+            | op.map(authenticate_end_user)
+            | op.map(validate_response_types)
+            | op.map(validate_scopes))
+        # create token
 
         implicit_grant_branch = (
             base_branch
