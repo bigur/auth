@@ -57,7 +57,7 @@ def app():
                 'secure': False,
                 'session_name': 'sid',
                 'id_name': 'uid',
-                'lifetime': 3600
+                'max_age': 3600
             }
         }
     })
