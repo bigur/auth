@@ -8,13 +8,18 @@ from logging import getLogger
 from aiohttp.web import Request
 
 from bigur.auth.oauth2.rfc6749.errors import InvalidRequest
-from bigur.auth.oauth2.rfc6749.request import OAuth2Request
+from bigur.auth.oauth2.rfc6749.request import OAuth2Request, OAuth2Response
 
 logger = getLogger(__name__)
 
 
 @dataclass
 class AuthorizationRequest(OAuth2Request):
+    pass
+
+
+@dataclass
+class AuthorizationResponse(OAuth2Response):
     pass
 
 
