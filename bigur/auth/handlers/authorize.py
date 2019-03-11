@@ -101,9 +101,9 @@ class AuthorizeView(View):
 
         implicit_grant_branch = (
             base_branch
-            | op.filter(lambda request: 'id_token' in request['oauth2_request'].
+            | op.filter(lambda request: 'token_id' in request['oauth2_request'].
                         response_type)
-            | op.map(implicit_grant))
+            | op.map(openid_implicit_grant))
 
         result_branch = op.concat(implicit_grant_branch)
 

@@ -113,8 +113,14 @@ class TestOIDCAuthorizationEndpoint(object):
             },
             allow_redirects=False)
 
-        assert response.status == 200
-        assert False, 'test is not ready'
+        assert response.status == 303
+
+        location = urlparse(response.headers['Location'])
+
+        assert location.path == '/feedback'
+
+        assert parse_qs(location.query) == {'a': ['1']}
+        assert parse_qs(location.fragment) == {'token_id': ['xxx']}
 
     @mark.db_configured
     @mark.asyncio
