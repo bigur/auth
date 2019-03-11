@@ -2,7 +2,10 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
+from dataclasses import asdict
 from logging import getLogger
+from typing import Dict, Optional
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
 from aiohttp.web import Request, Response, View
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPInternalServerError,
@@ -21,19 +24,42 @@ from bigur.auth.oauth2.rfc6749.validators import (
 from bigur.auth.openid.connect.endpoint.authorization import (
     create_oidc_request)
 
+from bigur.auth.openid.connect.grant import (implicit_grant as
+                                             openid_implicit_grant)
+
 logger = getLogger(__name__)
 
 
 class ResultObserver(ObserverBase[Request]):
 
-    def __init__(self, request):
+    def __init__(self, request: Request):
         self.request = request
-        self.response = None
+        self.response: Optional[Response] = None
         super().__init__()
 
-    async def on_next(self, request: Request):
-        logger.debug('on_next')
-        self.response = Response(text='response')
+    async def on_next(self, request: Request) -> None:
+        fragment: Dict[str, str] = {}
+        query: Dict[str, str] = {}
+
+        for oauth2_response in request['oauth2_responses']:
+            if oauth2_response.mode == 'fragment':
+                fragment.update(asdict(oauth2_response))
+            elif oauth2_response.mode == 'query':
+                query.update(asdict(oauth2_response))
+
+        logger.debug('on_next: %s, %s', fragment, query)
+        url = urlparse(request['oauth2_request'].redirect_uri)
+        query.update(parse_qs(url.query))
+        fragment.update(parse_qs(url.fragment))
+
+        self.response = Response(
+            status=303,
+            headers={
+                'Location':
+                    urlunparse((url.scheme, url.netloc, url.path, url.params,
+                                urlencode(query, doseq=True),
+                                urlencode(fragment, doseq=True)))
+            })
 
     async def on_error(self, error: Exception):
         if isinstance(error, OAuth2FatalError):
@@ -52,7 +78,6 @@ class ResultObserver(ObserverBase[Request]):
 
     async def on_completed(self):
         logger.debug('Request process finished')
-        self.response = Response(text='response from on completed')
 
 
 class AuthorizeView(View):
