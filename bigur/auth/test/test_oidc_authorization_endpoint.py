@@ -5,6 +5,8 @@ __licence__ = 'For license information see LICENSE'
 from pytest import mark
 from urllib.parse import urlparse, parse_qs
 
+from jwt import decode
+
 # TODO: return state when error response
 # TODO: test response mode: normal and error
 
@@ -102,7 +104,7 @@ class TestOIDCAuthorizationEndpoint(object):
 
     @mark.db_configured
     @mark.asyncio
-    async def test_get_token_id(self, cli, login, debug):
+    async def test_get_token_id(self, app, cli, login, debug):
         response = await cli.post(
             '/auth/authorize',
             data={
@@ -120,7 +122,16 @@ class TestOIDCAuthorizationEndpoint(object):
         assert location.path == '/feedback'
 
         assert parse_qs(location.query) == {'a': ['1']}
-        assert parse_qs(location.fragment) == {'token_id': ['xxx']}
+
+        aresp = parse_qs(location.fragment)
+        assert set(aresp.keys()) == {'token_id'}
+        jwt_key = app['jwt_keys'][0]
+        from cryptography.hazmat.primitives.serialization import (Encoding,
+                                                                  PublicFormat)
+        b = jwt_key.public_key().public_bytes(
+            encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo)
+        token = decode(aresp['token_id'][0], b)
+        assert token == {'sub': '123'}
 
     @mark.db_configured
     @mark.asyncio

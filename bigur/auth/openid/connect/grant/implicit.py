@@ -17,7 +17,7 @@ logger = getLogger(__name__)
 
 @dataclass
 class TokenIDResponse(OAuth2Response):
-    token_id: str
+    token_id: bytes
 
     @property
     def mode(self):
@@ -32,12 +32,13 @@ async def implicit_grant(request: Request) -> Request:
     logger.warning('Implicit grant stub')
 
     # XXX: Token stub
-    token_id = {}
     key = request.app['jwt_keys'][0].private_bytes(
         encoding=Encoding.PEM,
         format=PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=NoEncryption())
-    print(key)
+    from jwt import encode
+    payload = {'sub': '123123'}
+    token_id = encode(payload, key, algorithm='RS256', headers={'kid': '123'})
     request['oauth2_responses'].append(TokenIDResponse(token_id=token_id))
 
     return request
