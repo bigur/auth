@@ -21,7 +21,7 @@ class TestOIDCAuthorizationEndpoint(object):
             '/auth/authorize',
             data={
                 'client_id': 'someid',
-                'response_type': 'token_id',
+                'response_type': 'id_token',
                 'redirect_uri': 'https://localhost/',
             })
         assert response.status == 400
@@ -36,7 +36,7 @@ class TestOIDCAuthorizationEndpoint(object):
             '/auth/authorize',
             data={
                 'scope': 'openid',
-                'response_type': 'token_id',
+                'response_type': 'id_token',
                 'redirect_uri': 'https://localhost/',
             })
         assert response.status == 400
@@ -66,7 +66,7 @@ class TestOIDCAuthorizationEndpoint(object):
             '/auth/authorize',
             data={
                 'client_id': 'someid',
-                'response_type': 'token_id',
+                'response_type': 'id_token',
                 'scope': 'openid',
             })
         assert response.status == 400
@@ -82,7 +82,7 @@ class TestOIDCAuthorizationEndpoint(object):
             data={
                 'client_id': 'first',
                 'scope': 'openid',
-                'response_type': 'token_id',
+                'response_type': 'id_token',
                 'redirect_uri': 'https://localhost/feedback?a=1',
             },
             allow_redirects=False)
@@ -97,20 +97,20 @@ class TestOIDCAuthorizationEndpoint(object):
         assert query == {
             'client_id': ['first'],
             'scope': ['openid'],
-            'response_type': ['token_id'],
+            'response_type': ['id_token'],
             'redirect_uri': ['https://localhost/feedback?a=1'],
             'next': ['/auth/authorize']
         }
 
     @mark.db_configured
     @mark.asyncio
-    async def test_get_token_id(self, app, cli, login, debug):
+    async def test_get_id_token(self, app, cli, login, debug):
         response = await cli.post(
             '/auth/authorize',
             data={
                 'client_id': 'incorrect',
                 'scope': 'openid',
-                'response_type': 'token_id',
+                'response_type': 'id_token',
                 'redirect_uri': 'https://localhost/feedback?a=1',
             },
             allow_redirects=False)
@@ -124,13 +124,13 @@ class TestOIDCAuthorizationEndpoint(object):
         assert parse_qs(location.query) == {'a': ['1']}
 
         aresp = parse_qs(location.fragment)
-        assert set(aresp.keys()) == {'token_id'}
+        assert set(aresp.keys()) == {'id_token'}
         jwt_key = app['jwt_keys'][0]
         from cryptography.hazmat.primitives.serialization import (Encoding,
                                                                   PublicFormat)
         b = jwt_key.public_key().public_bytes(
             encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo)
-        token = decode(aresp['token_id'][0], b)
+        token = decode(aresp['id_token'][0], b)
         assert token == {'sub': '123'}
 
     @mark.db_configured
@@ -141,7 +141,7 @@ class TestOIDCAuthorizationEndpoint(object):
             data={
                 'client_id': 'incorrect',
                 'scope': 'openid',
-                'response_type': 'token_id',
+                'response_type': 'id_token',
                 'redirect_uri': 'https://localhost/feedback?a=1',
                 'other': 'must_be_ignored'
             },
@@ -158,7 +158,7 @@ class TestOIDCAuthorizationEndpoint(object):
             data={
                 'scope': 'openid',
                 'client_id': 'incorrect',
-                'response_type': 'token_id',
+                'response_type': 'id_token',
                 'redirect_uri': 'https://localhost/',
             },
             allow_redirects=False)

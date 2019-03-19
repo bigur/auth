@@ -78,7 +78,7 @@ class TestUserPass:
             data={
                 'username': 'admin',
                 'password': '123',
-                'next': '/auth/authorize?scope=openid&response_type=token_id'
+                'next': '/auth/authorize?scope=openid&response_type=id_token'
             },
             allow_redirects=False)
 
@@ -89,7 +89,7 @@ class TestUserPass:
         assert parts.path == '/auth/authorize'
 
         query = parse_qs(parts.query)
-        assert query == {'scope': ['openid'], 'response_type': ['token_id']}
+        assert query == {'scope': ['openid'], 'response_type': ['id_token']}
 
     @mark.db_configured
     @mark.asyncio
@@ -99,7 +99,7 @@ class TestUserPass:
             data={
                 'username': 'admin',
                 'password': '123',
-                'next': '/auth/authorize?scope=openid&response_type=token_id'
+                'next': '/auth/authorize?scope=openid&response_type=id_token'
             },
             allow_redirects=False)
 

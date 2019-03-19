@@ -16,8 +16,8 @@ logger = getLogger(__name__)
 
 
 @dataclass
-class TokenIDResponse(OAuth2Response):
-    token_id: bytes
+class IDTokenResponse(OAuth2Response):
+    id_token: bytes
 
     @property
     def mode(self):
@@ -38,7 +38,7 @@ async def implicit_grant(request: Request) -> Request:
         encryption_algorithm=NoEncryption())
     from jwt import encode
     payload = {'sub': '123123'}
-    token_id = encode(payload, key, algorithm='RS256', headers={'kid': '123'})
-    request['oauth2_responses'].append(TokenIDResponse(token_id=token_id))
+    id_token = encode(payload, key, algorithm='RS256', headers={'kid': '123'})
+    request['oauth2_responses'].append(IDTokenResponse(id_token=id_token))
 
     return request
