@@ -45,15 +45,15 @@ class UserPass(AuthN):
         return render_template('login_form.j2', self.request, context)
 
     async def post(self) -> Response:
-        query = await self.request.post()
+        query = (await self.request.post()).copy()
 
         error = None
         error_description = None
 
         if ('username' in query and 'password' in query):
             # Check incoming parameters
-            username = str(query.get('username')).strip()
-            password = str(query.get('password')).strip()
+            username = str(query.pop('username')).strip()
+            password = str(query.pop('password')).strip()
 
             # Check fields too long
             if (len(username) > FIELD_LENGTH or len(password) > FIELD_LENGTH):
