@@ -7,13 +7,15 @@ from hashlib import sha1
 from logging import getLogger
 
 from aiohttp.web import View, json_response
+from aiohttp_cors import CorsViewMixin, ResourceOptions, custom_cors
 
 logger = getLogger(__name__)
 
 
-class JWKSHandler(View):
+class JWKSHandler(View, CorsViewMixin):
     '''Handler returns public JWKs.'''
 
+    @custom_cors({'*': ResourceOptions()})
     async def get(self):
         result = []
         for private_key in self.request.app['jwt_keys']:

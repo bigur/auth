@@ -6,10 +6,9 @@ from logging.config import dictConfig
 from os import urandom
 from os.path import basename
 from sys import argv
-from typing import List, Union
 
-from aiohttp.web import Application, run_app, static, view
-from aiohttp.web import RouteDef, StaticDef
+from aiohttp.web import Application, run_app
+from aiohttp_cors import CorsViewMixin, setup as setup_cors
 from aiohttp_jinja2 import setup as jinja_setup
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -44,13 +43,18 @@ app['config'].import_config(args.config)
 dictConfig(app['config'].get('logging'))
 logger = getLogger(basename(argv[0]))
 
+# Setup CORS
+cors = setup_cors(app)
+
 # Setup routing
-routes: List[Union[StaticDef, RouteDef]] = []
 for endpoint in app['config'].get('http_server.endpoints').values():
-    routes.append(view(endpoint['path'], import_class(endpoint['handler'])))
+    view = import_class(endpoint['handler'])
+    route = app.router.add_route('*', endpoint['path'], view)
+    if issubclass(view, CorsViewMixin):
+        cors.add(route)
+
 for endpoint in app['config'].get('http_server.static', []):
-    routes.append(static(endpoint['prefix'], endpoint['path']))
-app.add_routes(routes)
+    app.router.add_static(endpoint['prefix'], endpoint['path'])
 
 # Initialize template engine
 templates = app['config'].get('http_server.templates')
