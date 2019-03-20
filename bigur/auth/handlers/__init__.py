@@ -4,4 +4,5 @@ __licence__ = 'For license information see LICENSE'
 
 # flake8: noqa
 
+from .jwks import JWKSHandler
 from .authorize import AuthorizeView
