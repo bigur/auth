@@ -38,16 +38,25 @@ class ResultObserver(ObserverBase[Request]):
         super().__init__()
 
     async def on_next(self, request: Request) -> None:
+        params: Dict[str, str] = {}
+        for oauth2_response in request['oauth2_responses']:
+            params.update(asdict(oauth2_response))
+
+        if request['oauth2_request'].state:
+            params['state'] = request['oauth2_request'].state
+
         fragment: Dict[str, str] = {}
         query: Dict[str, str] = {}
 
-        for oauth2_response in request['oauth2_responses']:
-            if oauth2_response.mode == 'fragment':
-                fragment.update(asdict(oauth2_response))
-            elif oauth2_response.mode == 'query':
-                query.update(asdict(oauth2_response))
+        logger.warning('Hardcoded response mode: fragment')
+        mode = 'fragment'
+        if mode == 'fragment':
+            fragment = params
+        elif mode == 'query':
+            query = params
+        else:
+            raise NotImplementedError('response mode not implemented')
 
-        logger.debug('on_next: %s, %s', fragment, query)
         url = urlparse(request['oauth2_request'].redirect_uri)
         query.update(parse_qs(url.query))
         fragment.update(parse_qs(url.fragment))
@@ -97,7 +106,6 @@ class AuthorizeView(View):
             | op.map(authenticate_end_user)
             | op.map(validate_response_types)
             | op.map(validate_scopes))
-        # create token
 
         implicit_grant_branch = (
             base_branch
