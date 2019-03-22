@@ -18,6 +18,7 @@ logger = getLogger(__name__)
 @dataclass
 class IDTokenResponse(OAuth2Response):
     id_token: bytes
+    access_token: bytes
 
     @property
     def mode(self):
@@ -32,13 +33,39 @@ async def implicit_grant(request: Request) -> Request:
     logger.warning('Implicit grant stub')
 
     # XXX: Token stub
+    private_key = request.app['jwt_keys'][0]
     key = request.app['jwt_keys'][0].private_bytes(
         encoding=Encoding.PEM,
         format=PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=NoEncryption())
     from jwt import encode
-    payload = {'sub': '123123'}
-    id_token = encode(payload, key, algorithm='RS256', headers={'kid': '123'})
-    request['oauth2_responses'].append(IDTokenResponse(id_token=id_token))
+    from time import time
+    payload = {
+        'iss': 'http://localhost:8889',
+        'sub': request['user'].decode('utf-8'),
+        'aud': request['oauth2_request'].client_id,
+        'iat': time(),
+        'exp': time() + 600
+    }
+    if request['oauth2_request'].nonce:
+        payload['nonce'] = request['oauth2_request'].nonce
+
+    public_key = private_key.public_key()
+    numbers = public_key.public_numbers()
+    n = numbers.n.to_bytes(int(public_key.key_size / 8), 'big').lstrip(b'\x00')
+    from hashlib import sha1, sha256
+    kid = sha1(n).hexdigest()
+
+    from base64 import urlsafe_b64encode
+    token = b'b1234'
+    payload['at_hash'] = urlsafe_b64encode(
+        sha256(token).digest()[:16]).decode('utf-8').rstrip('=')
+
+    logger.debug('Payload: %s', payload)
+
+    id_token = encode(payload, key, algorithm='RS256', headers={'kid': kid})
+
+    request['oauth2_responses'].append(
+        IDTokenResponse(id_token=id_token, access_token=token))
 
     return request
