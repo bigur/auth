@@ -8,10 +8,10 @@ from typing import List, Optional
 
 from aiohttp.web import Request
 
-from bigur.auth.oauth2.rfc6749.endpoint.authorization import (
+from bigur.auth.oauth2.endpoint.authorization import (
     AuthorizationRequest as OAuth2AuthorizationRequest, AuthorizationResponse as
     OAuth2AuthorizationResponse)
-from bigur.auth.oauth2.rfc6749.request import create_request
+from bigur.auth.oauth2.request import create_request
 
 logger = getLogger(__name__)
 

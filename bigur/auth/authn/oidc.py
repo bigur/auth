@@ -20,8 +20,8 @@ from jwt.exceptions import InvalidKeyError
 
 from bigur.auth.authn.base import AuthN, crypt, decrypt
 from bigur.auth.model.abc import AbstractProvider
-from bigur.auth.oauth2.rfc6749.errors import (UserNotAuthenticated,
-                                              InvalidParameter)
+from bigur.auth.oauth2.exceptions import (UserNotAuthenticated,
+                                          InvalidParameter)
 
 logger = getLogger(__name__)
 

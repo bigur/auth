@@ -22,7 +22,7 @@ from bigur.auth.authn.base import BLOCK_SIZE
 class TestUserPass:
 
     @mark.asyncio
-    async def test_empty_req_auth_form(self, cli):
+    async def test_empty_req_auth_form(self, authn_userpass, cli):
         response = await cli.get('/auth/login')
         assert match(r'.*<form.*>.*</form>.*', await response.text(),
                      DOTALL | MULTILINE) is not None
@@ -30,7 +30,7 @@ class TestUserPass:
         assert response.status == 200
 
     @mark.asyncio
-    async def test_long_username(self, cli):
+    async def test_long_username(self, authn_userpass, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -44,7 +44,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_no_such_user(self, cli):
+    async def test_no_such_user(self, authn_userpass, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -59,7 +59,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_incorrect(self, cli):
+    async def test_login_incorrect(self, authn_userpass, cli):
         response = await cli.post(
             '/auth/login', data={
                 'username': 'admin',
@@ -72,7 +72,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_successful(self, cli, user):
+    async def test_login_successful(self, authn_userpass, user, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -93,7 +93,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_set_cookie(self, app, cli, user):
+    async def test_set_cookie(self, app, authn_userpass, user, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -121,7 +121,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_bad_redirect_after_login(self, cli, user):
+    async def test_bad_redirect_after_login(self, authn_userpass, user, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -131,15 +131,11 @@ class TestUserPass:
             },
             allow_redirects=False)
 
-        assert response.status == 303
-
-        parts = urlparse(response.headers['Location'])
-
-        assert parts.path == '/http://www.disney.com/'
+        assert response.status == 400
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_without_next(self, cli, user):
+    async def test_login_without_next(self, authn_userpass, user, cli):
         response = await cli.post(
             '/auth/login',
             data={

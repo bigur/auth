@@ -1,36 +1,17 @@
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
-__copyright__ = '(c) 2016-2019 Business group for development management'
+__copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import asdict, dataclass
-from logging import getLogger
-from typing import Type
+from dataclasses import dataclass
 
 from aiohttp.web import Request
 
-from bigur.auth.oauth2.rfc6749.errors import ParameterRequired
-
-logger = getLogger(__name__)
+from bigur.auth.model import User
 
 
 @dataclass
 class OAuth2Request:
-
-    def asdict(self, *, dict_factory=dict):
-        result = dict_factory()
-        for k, v in asdict(self).items():
-            if v is None:
-                continue
-            if isinstance(v, list) and not v:
-                continue
-            result[k] = v
-        return result
-
-
-@dataclass
-class OAuth2Response:
-    pass
-
+    owner: User
 
 async def create_request(cls: Type, request: Request) -> Request:
     if request.method == 'GET':

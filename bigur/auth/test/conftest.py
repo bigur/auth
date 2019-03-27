@@ -6,7 +6,7 @@ from os import urandom
 from os.path import dirname, normpath
 
 from aiohttp import CookieJar
-from aiohttp.web import Application, view
+from aiohttp.web import Application
 from aiohttp_jinja2 import setup as jinja_setup
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -14,8 +14,7 @@ from jinja2 import FileSystemLoader
 from kaptan import Kaptan
 from pytest import fixture
 
-from bigur.auth.authn import OpenIDConnect, UserPass
-from bigur.auth.handlers import AuthorizeView
+from bigur.auth.authn import UserPass
 from bigur.auth.middlewares import session
 from bigur.auth.model import User, Client
 from bigur.auth.store import Memory
@@ -39,21 +38,16 @@ def debug(caplog):
 @fixture
 def app():
     app = Application(middlewares=[session])
-
-    app.add_routes([
-        view('/auth/login', UserPass),
-        view('/auth/oidc', OpenIDConnect),
-        view('/auth/authorize', AuthorizeView),
-    ])
     app['config'] = Kaptan()
+    app['store'] = Memory()
+    templates = normpath(dirname(__file__) + '../../../../templates')
+    jinja_setup(app, loader=FileSystemLoader(templates))
+    return app
+
+
+@fixture
+def authn_userpass(app):
     app['config'].import_config({
-        'http_server': {
-            'endpoints': {
-                'login': {
-                    'path': '/auth/login'
-                }
-            }
-        },
         'authn': {
             'cookie': {
                 'secure': False,
@@ -61,20 +55,25 @@ def app():
                 'id_name': 'uid',
                 'max_age': 3600
             }
+        },
+        'http_server': {
+            'endpoints': {
+                'login': {
+                    'path': '/auth/login'
+                }
+            }
         }
     })
-
     app['cookie_key'] = urandom(32)
+    return app.router.add_route('*', '/auth/login', UserPass)
+
+
+@fixture
+def jwt_keys(app):
     app['jwt_keys'] = [
         rsa.generate_private_key(
             public_exponent=65537, key_size=2048, backend=default_backend())
     ]
-    app['store'] = Memory()
-
-    templates = normpath(dirname(__file__) + '../../../../templates')
-    jinja_setup(app, loader=FileSystemLoader(templates))
-
-    return app
 
 
 @fixture
@@ -95,7 +94,7 @@ async def user(app):
 
 
 @fixture
-async def aclient(app, user):
+async def client(app, user):
     client = await app['store'].clients.put(
         Client('Test web client', user.id, 'password'))
     yield client

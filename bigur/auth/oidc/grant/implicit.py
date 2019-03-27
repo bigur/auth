@@ -9,8 +9,8 @@ from aiohttp.web import Request
 from cryptography.hazmat.primitives.serialization import (
     Encoding, PrivateFormat, NoEncryption)
 
-from bigur.auth.oauth2.rfc6749.errors import UnsupportedResponseType
-from bigur.auth.oauth2.rfc6749.request import OAuth2Response
+from bigur.auth.oauth2.exceptions import UnsupportedResponseType
+from bigur.auth.oauth2.request import OAuth2Response
 
 logger = getLogger(__name__)
 

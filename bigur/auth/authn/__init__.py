@@ -20,28 +20,30 @@ async def authenticate_end_user(request: Request) -> Request:
 
     # First check existing cookie, if it valid - pass
     cookie_name: str = request.app['config'].get('authn.cookie.id_name')
-    value = request.cookies.get(cookie_name)
+    cookie_value = request.cookies.get(cookie_name)
 
     # Check cookie
-    if value:
-        logger.debug('Found cookie %s', value)
+    if cookie_value:
+        logger.debug('Found cookie, decoding')
 
         key = request.app['cookie_key']
-        userid: str = decrypt(key, urlsafe_b64decode(value))
+        user_id: str = decrypt(key, urlsafe_b64decode(cookie_value))
 
         # XXX: Check user's session is active
         # XXX: Remove cookie if expired
         logger.warning('Check cookie expirity stub')
 
     # If no valid cookie, try to authenticate user
-    if value is None:
+    if cookie_value is None:
         logger.debug('Cookie is not set, detecting authn method')
 
         handler = None
-        for acr in request['oauth2_request'].acr_values:
-            if acr.startswith('idp:'):
-                logger.debug('Using OpenID Connect authn method')
-                handler = OpenIDConnect(request)
+        if 'acr' in request['params']:
+            for acr in request['params']['acr'].split(' '):
+                if acr.startswith('idp:'):
+                    logger.debug('Using OpenID Connect authn method')
+                    handler = OpenIDConnect(request)
+                    break
 
         if handler is None:
             logger.debug('Using login/password authn method')
@@ -49,6 +51,6 @@ async def authenticate_end_user(request: Request) -> Request:
 
         await handler.authenticate()
 
-    request['user'] = userid
+    request['user'] = user_id
 
     return request

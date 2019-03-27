@@ -1,13 +1,16 @@
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
-__copyright__ = '(c) 2016-2019 Business group for development management'
+__copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import asdict
 from logging import getLogger
-from typing import Dict, Optional
+from typing import Dict, List, Type
+
+from aiohttp.web import Request, View
+
+from bigur.rx import ObserverBase
+
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
-from aiohttp.web import Request, Response, View
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPInternalServerError,
                                     HTTPSeeOther)
 
@@ -15,17 +18,7 @@ from bigur.rx import ObserverBase, Subject
 from bigur.rx import operators as op
 
 from bigur.auth.authn import authenticate_end_user
-from bigur.auth.oauth2.rfc6749.grant import implicit_grant
-from bigur.auth.oauth2.rfc6749.errors import (OAuth2FatalError,
-                                              OAuth2RedirectError)
-from bigur.auth.oauth2.rfc6749.validators import (
-    validate_client_id, authorize_client, validate_redirect_uri,
-    validate_response_types, validate_scopes)
-from bigur.auth.openid.connect.endpoint.authorization import (
-    create_oidc_request)
-
-from bigur.auth.openid.connect.grant import (implicit_grant as
-                                             openid_implicit_grant)
+from bigur.auth.oauth2.grant import implicit_grant
 
 logger = getLogger(__name__)
 
@@ -33,8 +26,8 @@ logger = getLogger(__name__)
 class ResultObserver(ObserverBase[Request]):
 
     def __init__(self, request: Request):
-        self.request = request
-        self.response: Optional[Response] = None
+        self._request = request
+        self._responses = []
         super().__init__()
 
     async def on_next(self, request: Request) -> None:
@@ -89,42 +82,21 @@ class ResultObserver(ObserverBase[Request]):
         logger.debug('Request process finished')
 
 
-class AuthorizeView(View):
+class OAuth2Handler(View):
 
-    async def authorize(self):
-        self.request['oauth2_request'] = None
-        self.request['oauth2_responses'] = []
+    __endpoint__: Type
 
-        stream = Subject()
-
-        base_branch = (
-            stream
-            | op.map(create_oidc_request)
-            | op.map(validate_client_id)
-            | op.map(authorize_client)
-            | op.map(validate_redirect_uri)
-            | op.map(authenticate_end_user)
-            | op.map(validate_response_types)
-            | op.map(validate_scopes))
-
-        implicit_grant_branch = (
-            base_branch
-            | op.filter(lambda request: 'id_token' in request['oauth2_request'].
-                        response_type)
-            | op.map(openid_implicit_grant))
-
-        result_branch = op.concat(implicit_grant_branch)
-
-        result = ResultObserver(self.request)
-        await result_branch.subscribe(result)
-
-        await stream.on_next(self.request)
-        await stream.on_completed()
-
-        return result.response
+    async def handle(self):
+        request = self.request
+        owner = await authenticate_end_user(request)
+        stream = self.__endpoint__(owner=owner, params=request['params'])
+        result = ResultObserver(request)
+        await stream.subscribe(result)
 
     async def get(self):
-        return await self.authorize()
+        self.request['params'] = self.request.query
+        return await self.handle()
 
     async def post(self):
-        return await self.authorize()
+        self.request['params'] = await self.request.post()
+        return await self.handle()

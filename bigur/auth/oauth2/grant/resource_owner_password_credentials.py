@@ -6,7 +6,7 @@ from logging import getLogger
 
 from aiohttp.web import Request, Response
 
-from bigur.auth.oauth2.rfc6749.errors import UnsupportedResponseType
+from bigur.auth.oauth2.exceptions import UnsupportedResponseType
 
 logger = getLogger(__name__)
 

@@ -3,13 +3,11 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
-from urllib.parse import urlunparse, urlencode
+from urllib.parse import quote, urlparse, urlencode
 
 from aiohttp.web import Response
-from aiohttp.web_exceptions import (HTTPBadRequest)
+from aiohttp.web_exceptions import (HTTPBadRequest, HTTPSeeOther)
 from aiohttp_jinja2 import render_template
-
-from bigur.auth.oauth2.rfc6749.errors import UserNotAuthenticated
 
 from bigur.auth.authn.base import AuthN
 
@@ -23,15 +21,12 @@ class UserPass(AuthN):
 
     async def authenticate(self):
         request = self.request
-        params = request['oauth2_request'].asdict()
-        params['next'] = request.path
-        redirect_uri = request.app['config'].get(
-            'http_server.endpoints.login.path')
-        raise UserNotAuthenticated(
-            'Authentication required',
-            request,
-            redirect_uri=redirect_uri,
-            params=params)
+        params = request['params']
+        raise HTTPSeeOther(location='{}?{}'.format(
+            request.app['config'].get('http_server.endpoints.login.path'),
+            urlencode({
+                'next': '{}?{}'.format(request.path, urlencode(params))
+            })))
 
     async def get(self) -> Response:
         config = self.request.app['config']
@@ -61,6 +56,14 @@ class UserPass(AuthN):
                     'Recieve request with very long login/password field')
                 raise HTTPBadRequest()
 
+            # Ensure no redirect to external host
+            next_uri = query.get('next')
+            if next_uri:
+                parsed = urlparse(next_uri)
+                if parsed.scheme or parsed.netloc:
+                    logger.warning('Trying to do external redirect')
+                    raise HTTPBadRequest()
+
             # Finding user
             logger.debug('Try to find user %s in store', username)
 
@@ -76,24 +79,16 @@ class UserPass(AuthN):
                     logger.debug('Login for user %s successful', username)
 
                     # No next parameter, no way to redirect
-                    if 'next' not in query:
+                    if not next_uri:
                         response = Response(text='Login successful')
 
                     # Redirecting
                     else:
-                        next_uri = query.pop('next')
-                        url = self.request.url
                         response = Response(
                             status=303,
                             reason='See Other',
                             charset='utf-8',
-                            headers={
-                                'Location':
-                                    urlunparse(
-                                        (url.scheme, url.raw_host, next_uri, '',
-                                         urlencode(query, doseq=True),
-                                         url.raw_fragment))
-                            })
+                            headers={'Location': next_uri})
 
                     # Set cookie
                     self.set_cookie(self.request, response, user.id)
