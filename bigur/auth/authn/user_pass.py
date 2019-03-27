@@ -22,6 +22,7 @@ class UserPass(AuthN):
     async def authenticate(self):
         request = self.request
         params = request['params']
+        logger.debug('Redirecting to login form')
         raise HTTPSeeOther(location='{}?{}'.format(
             request.app['config'].get('http_server.endpoints.login.path'),
             urlencode({
@@ -37,6 +38,7 @@ class UserPass(AuthN):
             'error': query.get('error'),
             'error_description': query.get('error_description'),
         }
+        logger.debug('Returning login form')
         return render_template('login_form.j2', self.request, context)
 
     async def post(self) -> Response:
