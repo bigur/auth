@@ -15,7 +15,7 @@ async def auth_endpoint(app, authn_userpass):
 class TestAuthorizationEndpoint(object):
 
     @mark.asyncio
-    async def test_response_type_required(self, auth_endpoint, cli):
+    async def test_response_type_required(self, auth_endpoint, cli, login):
         response = await cli.post(
             '/auth/authorize', data={
                 'response_type': 'invalid',
