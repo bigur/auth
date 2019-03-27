@@ -3,35 +3,32 @@ __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
 from dataclasses import dataclass
+from typing import Type
 
-from aiohttp.web import Request
+from multidict import MultiDictProxy
 
 from bigur.auth.model import User
+from bigur.auth.oauth2.exceptions import ParameterRequired
 
 
 @dataclass
 class OAuth2Request:
     owner: User
 
-async def create_request(cls: Type, request: Request) -> Request:
-    if request.method == 'GET':
-        params = request.query
-    elif request.method == 'POST':
-        params = await request.post()
-    else:
-        ValueError('Unsupported method %s', request.method)
 
+async def create_request(cls: Type, owner: User, params: MultiDictProxy) -> OAuth2Request:
     try:
         kwargs = {
             key: params[key]
             for key in cls.__dataclass_fields__
             if key in params
         }
-        request['oauth2_request'] = cls(**kwargs)
+        kwargs['owner'] = owner
+        request = cls(**kwargs)
 
     except TypeError as e:
-        msg = str(e)[11:].capitalize().replace(' positional', '')
-        raise ParameterRequired(msg, request=request)
+        message = str(e)[11:].capitalize().replace(' positional', '')
+        raise ParameterRequired(message)
 
     else:
         return request
