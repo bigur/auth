@@ -2,18 +2,12 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from typing import Dict, Optional
+from typing import Optional
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-
-from aiohttp.web import Request
 
 
 class OAuth2Error(Exception):
     '''Base class for OAuth2 errors.'''
-
-    def __init__(self, message: str, request: Request):
-        self.request = request
-        super().__init__(message)
 
 
 class OAuth2FatalError(OAuth2Error):
@@ -45,18 +39,13 @@ class OAuth2RedirectError(OAuth2Error):
     via redirection after `redirect_uri` check.'''
     error_code: Optional[str]
 
-    def __init__(self,
-                 reason: str,
-                 request: Request,
-                 redirect_uri: Optional[str] = None,
-                 params: Optional[Dict[str, str]] = None):
-        self.redirect_uri = redirect_uri
-        self.params = params
-        super().__init__(reason, request)
+    def __init__(self, request, description):
+        self._request = request
+        super().__init__(description)
 
     @property
     def location(self):
-        request = self.request
+        request = self._request
         redirect_uri = self.redirect_uri
         if redirect_uri is None:
             redirect_uri = request['oauth2_request'].redirect_uri
