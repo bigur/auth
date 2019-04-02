@@ -4,8 +4,6 @@ __licence__ = 'For license information see LICENSE'
 
 # flake8: noqa
 
-from .client import authorize_client
+from .client import authenticate_client
 from .client_id import validate_client_id
 from .redirect_uri import validate_redirect_uri
-from .response_types import validate_response_types
-from .scopes import validate_scopes

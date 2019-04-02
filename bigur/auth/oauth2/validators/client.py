@@ -4,11 +4,11 @@ __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
 
-from aiohttp.web import Request
+from bigur.auth.oauth2.request import OAuth2Request
 
 logger = getLogger(__name__)
 
 
-async def authorize_client(request: Request) -> Request:
+async def authenticate_client(request: OAuth2Request) -> OAuth2Request:
     logger.warning('Client authorization stub')
     return request
