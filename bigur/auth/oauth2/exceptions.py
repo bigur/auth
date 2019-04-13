@@ -3,87 +3,90 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from typing import Optional
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+
+from bigur.auth.oauth2.request import OAuth2Request
 
 
 class OAuth2Error(Exception):
     '''Base class for OAuth2 errors.'''
+
+    def __init__(self, description: str, request: OAuth2Request):
+        self._request = request
+        super().__init__(description)
 
 
 class OAuth2FatalError(OAuth2Error):
     '''This kind of exceptions should be returned via http response codes.'''
 
 
-class InvalidClient(OAuth2FatalError):
-    '''Raises then `client_id` verification failed'''
+class MissingClientID(OAuth2FatalError):
+    '''Raises then client_id required parameter is missing.'''
 
 
-class InvalidClientCredentials(OAuth2FatalError):
-    '''Raises then client authentication needed and it failed.'''
+class InvalidClientID(OAuth2FatalError):
+    '''Raises then client_id parameter present, but it invalid.'''
 
 
-class InvalidRedirectURI(OAuth2FatalError):
+class InvalidRedirectionURI(OAuth2FatalError):
     '''Raises then `redirect_uri` check failed.'''
 
 
-class ParameterRequired(OAuth2FatalError):
-    '''Raises then required parameter is absent.'''
-
-
-class InvalidParameter(OAuth2FatalError):
-    '''Raises then required parameter is invalid.'''
-
-
-class OAuth2RedirectError(OAuth2Error):
+class OAuth2RedirectionError(OAuth2Error):
     '''This kind of exceptions should be return to user
     via redirection after `redirect_uri` check.'''
     error_code: Optional[str]
 
-    def __init__(self, request, description):
-        self._request = request
-        super().__init__(description)
 
-    @property
-    def location(self):
-        request = self._request
-        redirect_uri = self.redirect_uri
-        if redirect_uri is None:
-            redirect_uri = request['oauth2_request'].redirect_uri
+class InvalidRequest(OAuth2RedirectionError):
+    '''The request is missing a required parameter, includes an
+    invalid parameter value, includes a parameter more than
+    once, or is otherwise malformed.'''
 
-        parts = urlparse(redirect_uri)
-
-        query = parse_qs(parts.query)
-
-        params = self.params
-
-        if params is None:
-            if self.error_code:
-                params = {
-                    'error': [self.error_code],
-                    'error_description': [str(self)]
-                }
-
-            if 'oauth2_request' in request and (request['oauth2_request'].state
-                                                is not None):
-                params['state'] = [request['oauth2_request'].state]
-
-        query.update(params)
-
-        return urlunparse((parts.scheme, parts.netloc, parts.path, parts.params,
-                           urlencode(query, doseq=True), parts.fragment))
-
-
-class InvalidRequest(OAuth2RedirectError):
     error_code = 'invalid_request'
 
 
-class UnsupportedResponseType(OAuth2RedirectError):
+class UnauthorizedClient(OAuth2RedirectionError):
+    '''The client is not authorized to request an authorization
+    code using this method.'''
+
+    error_code = 'unauthorized_client'
+
+
+class AccessDenied(OAuth2RedirectionError):
+    '''The resource owner or authorization server denied the
+    request.'''
+
+    error_code = 'access_denied'
+
+
+class UnsupportedResponseType(OAuth2RedirectionError):
+    '''The authorization server does not support obtaining an
+    authorization code using this method.'''
+
     error_code = 'unsupported_response_type'
 
 
-class UserInteractionError(OAuth2RedirectError):
-    pass
+class InvalidScope(OAuth2RedirectionError):
+    '''The requested scope is invalid, unknown, or malformed.'''
+
+    error_code = 'invalid_scope'
 
 
-class UserNotAuthenticated(UserInteractionError):
-    error_code = None
+class ServerError(OAuth2RedirectionError):
+    '''The authorization server encountered an unexpected
+    condition that prevented it from fulfilling the request.
+    (This error code is needed because a 500 Internal Server
+    Error HTTP status code cannot be returned to the client
+    via an HTTP redirect.)'''
+
+    error_code = 'server_error'
+
+
+class TemporarilyUnavailable(OAuth2RedirectionError):
+    '''The authorization server is currently unable to handle
+    the request due to a temporary overloading or maintenance
+    of the server.  (This error code is needed because a 503
+    Service Unavailable HTTP status code cannot be returned
+    to the client via an HTTP redirect.)'''
+
+    error_code = 'temporarily_unavailable'
