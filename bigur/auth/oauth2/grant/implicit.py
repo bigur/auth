@@ -2,20 +2,25 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
+from dataclasses import dataclass
 from logging import getLogger
 
-from aiohttp.web import Request
-
-from bigur.auth.oauth2.exceptions import UnsupportedResponseType
+from bigur.auth.oauth2.request import OAuth2Request
+from bigur.auth.oauth2.response import OAuth2Response
 
 logger = getLogger(__name__)
 
 
-async def implicit_grant(request: Request) -> Request:
-    assert request.get('user') is not None, (
-        'User not set in request, do auth first!')
+@dataclass
+class OAuth2TokenResponse(OAuth2Response):
+    redirect_uri: str
+    token: str
+
+
+async def implicit_grant(request: OAuth2Request) -> OAuth2Response:
+    assert request.owner is not None, (
+        'Resource owner is not set, do auth first!')
 
     logger.warning('Implicit grant stub')
-    raise UnsupportedResponseType(
-        'Implicit grant is not implemented yet', request=request)
-    return request
+
+    return OAuth2TokenResponse(redirect_uri=request.redirect_uri, token='blah')
