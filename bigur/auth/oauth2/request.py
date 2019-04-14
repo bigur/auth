@@ -2,33 +2,30 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import dataclass
-from typing import Type
+from dataclasses import dataclass, field
+from typing import Optional, Set
 
-from multidict import MultiDictProxy
-
-from bigur.auth.model import User
-from bigur.auth.oauth2.exceptions import ParameterRequired
+from bigur.auth.model import Client, User
 
 
 @dataclass
 class OAuth2Request:
+    # Resource owner
     owner: User
 
+    # RFC 6749 parameters
+    client_id: Optional[str] = None
+    redirect_uri: Optional[str] = None
+    response_type: Set = field(default_factory=set)
 
-async def create_request(cls: Type, owner: User, params: MultiDictProxy) -> OAuth2Request:
-    try:
-        kwargs = {
-            key: params[key]
-            for key in cls.__dataclass_fields__
-            if key in params
-        }
-        kwargs['owner'] = owner
-        request = cls(**kwargs)
+    # Internal parameters
+    client: Optional[Client] = None
 
-    except TypeError as e:
-        message = str(e)[11:].capitalize().replace(' positional', '')
-        raise ParameterRequired(message)
-
-    else:
-        return request
+    def __post_init__(self):
+        keys = 'response_type', 'scope'
+        for key in keys:
+            value = getattr(self, key, None)
+            if value is None:
+                setattr(self, key, set())
+            elif isinstance(value, str):
+                setattr(self, key, {x for x in value.split() if x})
