@@ -15,12 +15,14 @@ async def auth_endpoint(app, authn_userpass):
 class TestAuthorizationEndpoint(object):
 
     @mark.asyncio
-    async def test_response_type_required(self, auth_endpoint, cli, login):
+    async def test_no_client_id(self, auth_endpoint, cli, login, debug):
         response = await cli.post(
-            '/auth/authorize', data={
-                'response_type': 'invalid',
-            })
+            '/auth/authorize',
+            data={
+                'redirect_uri': '/response',
+                'response_type': 'token',
+            },
+            allow_redirects=False)
         assert response.status == 400
         assert response.content_type == 'text/plain'
-        assert await response.text() == (
-            '400: Missing 1 required argument: \'response_type\'')
+        assert await response.text() == ('400: Missing client_id')
