@@ -66,7 +66,7 @@ class ResultObserver(ObserverBase):
             raise HTTPBadRequest(reason='Response mode not supported')
 
         if request.redirect_uri is None:
-            raise HTTPBadRequest(reason='Redirect uri is not set')
+            raise HTTPBadRequest(reason='Missing \'redirect_uri\' parameter')
 
         url = urlparse(request.redirect_uri)
         query.update(parse_qs(url.query))
