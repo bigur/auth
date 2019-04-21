@@ -4,15 +4,9 @@ __licence__ = 'For license information see LICENSE'
 
 from typing import Optional
 
-from bigur.auth.oauth2.request import OAuth2Request
-
 
 class OAuth2Error(Exception):
     '''Base class for OAuth2 errors.'''
-
-    def __init__(self, description: str, request: OAuth2Request):
-        self._request = request
-        super().__init__(description)
 
 
 class OAuth2FatalError(OAuth2Error):
