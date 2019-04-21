@@ -14,5 +14,5 @@ async def validate_client_id(request: OAuth2Request) -> OAuth2Request:
     logger.warning('Validate client_id stub')
     client_id = request.client_id
     if not client_id:
-        raise MissingClientID('Missing client_id')
+        raise MissingClientID('Missing \'client_id\' parameter')
     return request
