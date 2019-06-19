@@ -31,7 +31,7 @@ def decrypt(key: bytes, value: bytes) -> str:
     padded = decryptor.update(data) + decryptor.finalize()
     unpadder = padding.PKCS7(BLOCK_SIZE * 8).unpadder()
 
-    return unpadder.update(padded) + unpadder.finalize()
+    return (unpadder.update(padded) + unpadder.finalize()).decode('utf-8')
 
 
 def crypt(key: bytes, username: str) -> bytes:
