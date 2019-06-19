@@ -10,5 +10,5 @@ logger = getLogger(__name__)
 
 
 async def authenticate_client(request: OAuth2Request) -> OAuth2Request:
-    logger.warning('Client authorization stub')
+    logger.warning('Client authentication stub')
     return request
