@@ -77,14 +77,16 @@ class TestAuthorizationEndpoint(object):
         ])
 
     @mark.asyncio
-    async def test_implicit_grant(self, auth_endpoint, decode_token, cli, login,
-                                  debug):
+    async def test_implicit_grant(self, auth_endpoint, user, decode_token, cli,
+                                  login):
         response = await cli.post(
             '/auth/authorize',
             data={
                 'response_type': 'token',
                 'client_id': '123',
+                'scope': 'one two',
                 'redirect_uri': '/response',
+                'state': 'blah',
             },
             allow_redirects=False)
 
@@ -100,8 +102,11 @@ class TestAuthorizationEndpoint(object):
         assert parsed.fragment
 
         query = parse_qs(parsed.fragment)
-        assert {x for x in query.keys()} == {'token'}
+        assert {x for x in query.keys()} == {'token', 'state'}
+
+        assert query['state'] == ['blah']
 
         payload = decode_token(query['token'][0])
-        assert isinstance(payload, dict)
-        assert False
+        assert set(payload.keys()) == {'sub', 'scope'}
+        assert payload['sub'] == user.id
+        assert set(payload['scope']) == {'one', 'two'}
