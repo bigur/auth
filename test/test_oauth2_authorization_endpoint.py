@@ -29,7 +29,7 @@ class TestAuthorizationEndpoint(object):
         assert await response.text() == ('400: Missing \'client_id\' parameter')
 
     @mark.asyncio
-    async def test_missing_redirect_uri(self, auth_endpoint, cli, login, debug):
+    async def test_miss_redirect_uri(self, auth_endpoint, cli, login, debug):
         response = await cli.post(
             '/auth/authorize',
             data={
@@ -43,8 +43,12 @@ class TestAuthorizationEndpoint(object):
             '400: Missing \'redirect_uri\' parameter')
 
     @mark.asyncio
-    async def test_missing_response_type(self, auth_endpoint, cli, login,
-                                         debug):
+    async def test_miss_response_type(
+            self,
+            auth_endpoint,
+            cli,
+            login,
+    ):
         response = await cli.post(
             '/auth/authorize',
             data={
@@ -71,3 +75,33 @@ class TestAuthorizationEndpoint(object):
         assert (query['error_description'] == [
             'Missing response_type parameter'
         ])
+
+    @mark.asyncio
+    async def test_implicit_grant(self, auth_endpoint, decode_token, cli, login,
+                                  debug):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'response_type': 'token',
+                'client_id': '123',
+                'redirect_uri': '/response',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        assert response.content_type == 'application/octet-stream'
+
+        parsed = urlparse(response.headers['Location'])
+
+        assert parsed.scheme == ''
+        assert parsed.netloc == ''
+        assert parsed.path == '/response'
+        assert parsed.query == ''
+        assert parsed.fragment
+
+        query = parse_qs(parsed.fragment)
+        assert {x for x in query.keys()} == {'token'}
+
+        payload = decode_token(query['token'][0])
+        assert isinstance(payload, dict)
+        assert False

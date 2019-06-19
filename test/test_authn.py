@@ -24,10 +24,10 @@ class TestUserPass:
     @mark.asyncio
     async def test_empty_req_auth_form(self, authn_userpass, cli):
         response = await cli.get('/auth/login')
+        assert response.status == 200
+        assert response.headers['Content-Type'] == 'text/html; charset=utf-8'
         assert match(r'.*<form.*>.*</form>.*', await response.text(),
                      DOTALL | MULTILINE) is not None
-        assert response.headers['Content-Type'] == 'text/html; charset=utf-8'
-        assert response.status == 200
 
     @mark.asyncio
     async def test_long_username(self, authn_userpass, cli):

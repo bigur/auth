@@ -10,7 +10,10 @@ from aiohttp.web import Application
 from aiohttp_jinja2 import setup as jinja_setup
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import (Encoding,
+                                                          PublicFormat)
 from jinja2 import FileSystemLoader
+from jwt import decode as jwt_decode
 from kaptan import Kaptan
 from pytest import fixture
 
@@ -20,6 +23,7 @@ from bigur.auth.model import User, Client
 from bigur.auth.store import Memory
 
 
+# Main loop
 @fixture
 def loop(event_loop):
     return event_loop
@@ -28,6 +32,7 @@ def loop(event_loop):
 from aiohttp.pytest_plugin import aiohttp_client  # noqa: F401
 
 
+# Debug
 @fixture
 def debug(caplog):
     '''Enable debug logging in tests.'''
@@ -35,11 +40,20 @@ def debug(caplog):
     caplog.set_level(DEBUG, logger='bigur.auth')
 
 
+# Cryptography
 @fixture
-def app():
+def jwt_key():
+    return rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend())
+
+
+# Server
+@fixture
+def app(jwt_key):
     app = Application(middlewares=[session])
     app['config'] = Kaptan()
     app['store'] = Memory()
+    app['jwt_keys'] = [jwt_key]
     templates = normpath(dirname(__file__) + '../../../../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
     return app
@@ -68,24 +82,6 @@ def authn_userpass(app):
     return app.router.add_route('*', '/auth/login', UserPass)
 
 
-@fixture
-def jwt_keys(app):
-    app['jwt_keys'] = [
-        rsa.generate_private_key(
-            public_exponent=65537, key_size=2048, backend=default_backend())
-    ]
-
-
-@fixture
-async def cookie_jar():
-    yield CookieJar(unsafe=True)
-
-
-@fixture  # noqa: F811
-def cli(loop, app, cookie_jar, aiohttp_client):
-    return loop.run_until_complete(aiohttp_client(app, cookie_jar=cookie_jar))
-
-
 # Entities
 @fixture
 async def user(app):
@@ -100,6 +96,30 @@ async def client(app, user):
     yield client
 
 
+# Client
+@fixture
+async def cookie_jar():
+    yield CookieJar(unsafe=True)
+
+
+@fixture  # noqa: F811
+def cli(loop, app, cookie_jar, aiohttp_client):
+    return loop.run_until_complete(aiohttp_client(app, cookie_jar=cookie_jar))
+
+
+@fixture
+def decode_token(app):
+    jwt_key = jwt_keys[0]
+    public_bytes = jwt_key.public_key().public_bytes(
+        encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo)
+
+    def decode(token):
+        return jwt_decode(token, public_bytes, algorithms=['RS256'])
+
+    return decode
+
+
+# Queries
 @fixture
 async def login(user, cli):
     response = await cli.post(
