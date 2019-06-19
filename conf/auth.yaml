@@ -63,10 +63,13 @@ authn:
     secure: true
     id_name: uid
     session_name: sid
+
   oidc:
     clients:
       accounts.google.com:
         client_id: XXX
         client_secret: XXX
 
-authz:
+oauth2:
+  jwt_keys:
+    - /etc/bigur/jwt-key.pem

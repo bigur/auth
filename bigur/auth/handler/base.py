@@ -96,9 +96,11 @@ class OAuth2Handler(View):
     __endpoint__: Endpoint
 
     async def handle(self, params: MultiDictProxy) -> Response:
-        owner = await authenticate_end_user(self.request)
+        request = self.request
+        await authenticate_end_user(request)
 
-        oauth2_request = OAuth2Request(owner=owner, **params)
+        oauth2_request = OAuth2Request(
+            owner=request['user'], jwt_keys=request.app['jwt_keys'], **params)
         stream = self.__endpoint__(oauth2_request)
 
         result = ResultObserver(oauth2_request)

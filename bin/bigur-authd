@@ -83,7 +83,7 @@ app['cookie_key'] = key
 # Load/generate RSA key for JWT
 backend = default_backend()
 app['jwt_keys'] = []
-for jwt_key_file in app['config'].get('oidc.jwt_keys', []):
+for jwt_key_file in app['config'].get('oauth2.jwt_keys', []):
     try:
         with open(jwt_key_file, 'rb') as fh:
             app['jwt_keys'].append(

@@ -2,27 +2,39 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import dataclass, field
-from typing import Optional, Set
+from dataclasses import dataclass, field, fields
+from logging import getLogger
+from typing import List, Optional, Set
+
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
 from bigur.auth.model import Client, User
+
+logger = getLogger(__name__)
 
 
 @dataclass
 class OAuth2Request:
+
     # Resource owner
     owner: User
+
+    # Configured RSA JWT keys
+    jwt_keys: List[RSAPrivateKey]
 
     # RFC 6749 parameters
     client_id: Optional[str] = None
     redirect_uri: Optional[str] = None
-    response_type: Set = field(default_factory=set)
+    response_type: Set[str] = field(default_factory=set)
+
+    scope: Set[str] = field(default_factory=set)
+    state: Optional[str] = None
 
     # Internal parameters
     client: Optional[Client] = None
 
     def __post_init__(self):
-        keys = 'response_type', 'scope'
+        keys = {x.name for x in fields(self) if x.type == Set[str]}
         for key in keys:
             value = getattr(self, key, None)
             if value is None:
