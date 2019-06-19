@@ -54,6 +54,7 @@ def app(jwt_key):
     app['config'] = Kaptan()
     app['store'] = Memory()
     app['jwt_keys'] = [jwt_key]
+    app['cookie_key'] = urandom(32)
     templates = normpath(dirname(__file__) + '../../../../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
     return app
@@ -78,22 +79,23 @@ def authn_userpass(app):
             }
         }
     })
-    app['cookie_key'] = urandom(32)
     return app.router.add_route('*', '/auth/login', UserPass)
 
 
 # Entities
 @fixture
 async def user(app):
-    user = await app['store'].users.put(User('admin', '123'))
-    yield user
+    if 'user' not in app:
+        app['user'] = await app['store'].users.put(User('admin', '123'))
+    yield app['user']
 
 
 @fixture
 async def client(app, user):
-    client = await app['store'].clients.put(
-        Client('Test web client', user.id, 'password'))
-    yield client
+    if 'client' not in app:
+        app['client'] = await app['store'].clients.put(
+            Client('Test web client', user.id, 'password'))
+    yield app['client']
 
 
 # Client
@@ -109,7 +111,7 @@ def cli(loop, app, cookie_jar, aiohttp_client):
 
 @fixture
 def decode_token(app):
-    jwt_key = jwt_keys[0]
+    jwt_key = app['jwt_keys'][0]
     public_bytes = jwt_key.public_key().public_bytes(
         encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo)
 
