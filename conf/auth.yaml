@@ -22,6 +22,8 @@ logging:
       level: DEBUG
       propagate: true
 
+store:
+  class: bigur.auth.store.Memory
 
 http_server:
   bind:
@@ -29,15 +31,26 @@ http_server:
     port: 8889
 
   endpoints:
+    registration:
+      path: /auth/registration
+      handler: bigur.auth.authn.Registration
     login:
       path: /auth/login
       handler: bigur.auth.authn.UserPass
     oidc:
       path: /auth/oidc
       handler: bigur.auth.authn.OpenIDConnect
+    jwks:
+      path: /auth/jwks.json
+      handler: bigur.auth.handlers.JWKSHandler
     authorize:
       path: /auth/authorize
       handler: bigur.auth.handlers.AuthorizeView
+
+  static:
+    -
+      prefix: /assets
+      path: ./static
 
   templates: /usr/share/bigur/auth/templates
 
@@ -53,7 +66,7 @@ authn:
   oidc:
     clients:
       accounts.google.com:
-        client_id:
-        client_secret:
+        client_id: XXX
+        client_secret: XXX
 
 authz:
