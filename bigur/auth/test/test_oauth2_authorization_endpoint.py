@@ -3,6 +3,7 @@ __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
 from pytest import fixture, mark
+from urllib.parse import urlparse, parse_qs
 
 from bigur.auth.handler.oauth2 import AuthorizationHandler
 
@@ -40,3 +41,33 @@ class TestAuthorizationEndpoint(object):
         assert response.content_type == 'text/plain'
         assert await response.text() == (
             '400: Missing \'redirect_uri\' parameter')
+
+    @mark.asyncio
+    async def test_missing_response_type(self, auth_endpoint, cli, login,
+                                         debug):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'client_id': '123',
+                'redirect_uri': '/response',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        assert response.content_type == 'application/octet-stream'
+
+        parsed = urlparse(response.headers['Location'])
+
+        assert parsed.scheme == ''
+        assert parsed.netloc == ''
+        assert parsed.path == '/response'
+        assert parsed.query == ''
+        assert parsed.fragment
+
+        query = parse_qs(parsed.fragment)
+        assert {x for x in query.keys()} == {'error', 'error_description'}
+
+        assert query['error'] == ['invalid_request']
+        assert (query['error_description'] == [
+            'Missing response_type parameter'
+        ])

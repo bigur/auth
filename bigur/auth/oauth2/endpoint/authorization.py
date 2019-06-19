@@ -23,7 +23,7 @@ class AuthorizationEndpoint(Endpoint):
         def invalid_request(error_class: OAuth2Error, description: str):
 
             def raise_exception(request: OAuth2Request) -> OAuth2Request:
-                raise error_class(description, request)
+                raise error_class(description)
 
             return raise_exception
 
