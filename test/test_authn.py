@@ -72,7 +72,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_successful(self, authn_userpass, user, cli):
+    async def test_login_successful(self, user, authn_userpass, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -93,7 +93,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_set_cookie(self, app, authn_userpass, user, cli):
+    async def test_set_cookie(self, app, user, authn_userpass, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -121,7 +121,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_bad_redirect_after_login(self, authn_userpass, user, cli):
+    async def test_bad_redirect_after_login(self, user, authn_userpass, cli):
         response = await cli.post(
             '/auth/login',
             data={
@@ -135,7 +135,7 @@ class TestUserPass:
 
     @mark.db_configured
     @mark.asyncio
-    async def test_login_without_next(self, authn_userpass, user, cli):
+    async def test_login_without_next(self, user, authn_userpass, cli):
         response = await cli.post(
             '/auth/login',
             data={
