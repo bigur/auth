@@ -3,7 +3,7 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
-from urllib.parse import quote, urlparse, urlencode
+from urllib.parse import urlparse, urlencode
 
 from aiohttp.web import Response
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPSeeOther)
