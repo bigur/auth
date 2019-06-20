@@ -29,7 +29,7 @@ class TestAuthorizationEndpoint(object):
         assert await response.text() == ('400: Missing \'client_id\' parameter')
 
     @mark.asyncio
-    async def test_miss_redirect_uri(self, auth_endpoint, cli, login, debug):
+    async def test_miss_redirect_uri(self, auth_endpoint, cli, login):
         response = await cli.post(
             '/auth/authorize',
             data={
