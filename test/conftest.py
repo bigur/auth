@@ -55,7 +55,7 @@ def app(jwt_key):
     app['store'] = Memory()
     app['jwt_keys'] = [jwt_key]
     app['cookie_key'] = urandom(32)
-    templates = normpath(dirname(__file__) + '../../../../templates')
+    templates = normpath(dirname(__file__) + '/../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
     return app
 
