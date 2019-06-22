@@ -4,4 +4,5 @@ __licence__ = 'For license information see LICENSE'
 
 # flake8: noqa
 
+from .authorization_code import authorization_code_grant
 from .implicit import implicit_grant
