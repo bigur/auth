@@ -123,7 +123,7 @@ def decode_token(app):
 
 # Queries
 @fixture
-async def login(user, cli):
+async def login(cli, user):
     response = await cli.post(
         '/auth/login',
         data={
