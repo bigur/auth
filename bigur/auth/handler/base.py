@@ -93,13 +93,14 @@ class ResultObserver(ObserverBase):
 
 class OAuth2Handler(View):
 
+    __request_class__: OAuth2Request
     __endpoint__: Endpoint
 
     async def handle(self, params: MultiDictProxy) -> Response:
         request = self.request
         await authenticate_end_user(request)
 
-        oauth2_request = OAuth2Request(
+        oauth2_request = self.__request_class__(
             owner=request['user'], jwt_keys=request.app['jwt_keys'], **params)
         stream = self.__endpoint__(oauth2_request)
 
