@@ -13,7 +13,7 @@ async def auth_endpoint(app, authn_userpass):
     app.router.add_route('*', '/auth/authorize', AuthorizationHandler)
 
 
-class TestAuthorizationEndpoint(object):
+class TestAuthorizationEndpoint:
 
     @mark.asyncio
     async def test_no_client_id(self, auth_endpoint, cli, login):
