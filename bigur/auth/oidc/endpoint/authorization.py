@@ -1,52 +1,66 @@
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
-__copyright__ = '(c) 2016-2019 Business group for development management'
+__copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import dataclass, field
 from logging import getLogger
-from typing import List, Optional
 
-from aiohttp.web import Request
+from bigur.rx import ObservableType
+from bigur.rx import operators as op
 
-from bigur.auth.oauth2.endpoint.authorization import (
-    AuthorizationRequest as OAuth2AuthorizationRequest, AuthorizationResponse as
-    OAuth2AuthorizationResponse)
-from bigur.auth.oauth2.request import create_request
+from bigur.auth.oauth2.endpoint.base import Endpoint
+from bigur.auth.oauth2.exceptions import InvalidRequest, OAuth2Error
+from bigur.auth.oauth2.validators import (
+    validate_client_id, authenticate_client, validate_redirect_uri)
+from bigur.auth.oidc.endpoint import (authorizatin_code_grant, implicit_grant)
+from bigur.auth.oidc.request import OIDCRequest
 
 logger = getLogger(__name__)
 
 
-@dataclass
-class AuthorizationRequest(OAuth2AuthorizationRequest):
-    scope: List[str]
-    response_type: List[str]
-    client_id: str
-    redirect_uri: str
-    state: Optional[str] = None
-    response_mode: Optional[str] = None
-    nonce: Optional[str] = None
-    display: Optional[str] = None
-    user: Optional[str] = None
-    acr_values: List[str] = field(default_factory=list)
+class AuthorizationEndpoint(Endpoint):
 
-    def __post_init__(self):
-        self.response_type = [x.strip() for x in self.response_type.split(' ')]
-        if isinstance(self.acr_values, str):
-            self.acr_values = [x.strip() for x in self.acr_values.split(' ')]
+    def _chain(self, stream: ObservableType) -> ObservableType:
 
+        def invalid_request(error_class: OAuth2Error, description: str):
 
-@dataclass
-class AuthorizationResponse(OAuth2AuthorizationResponse):
-    pass
+            def raise_exception(request: OIDCRequest) -> OIDCRequest:
+                raise error_class(description)
 
+            return raise_exception
 
-async def create_oidc_request(request: Request) -> Request:
-    logger.debug('Creating OIDC Authorization request object')
-    return await create_request(AuthorizationRequest, request)
+        base_branch = (
+            stream
+            | op.map(validate_client_id)
+            | op.map(authenticate_client)
+            | op.map(validate_redirect_uri))
 
+        empty_response_type_branch = (
+            base_branch
+            | op.filter(lambda x: not x.response_type)
+            | op.map(
+                invalid_request(InvalidRequest,
+                                'Missing response_type parameter')))
 
-async def create_response(request: Request) -> Request:
-    logger.debug('Creating response')
-    response = AuthorizationResponse()
-    request['oauth2_responses'].append(response)
-    return request
+        # code token -> fragment
+        # code id_token -> fragment
+        # id_token token -> fragment
+        # code id_token token -> fragment
+        implicit_branch = (
+            base_branch
+            | op.filter(lambda x: x.response_type == {'token'})
+            | op.map(implicit_grant))
+
+        authorization_code_branch = (
+            base_branch
+            | op.filter(lambda x: x.response_type == {'code'})
+            | op.map(authorization_code_grant))
+
+        invalid_response_type_branch = (
+            base_branch
+            | op.filter(lambda x: x.response_type - {'code', 'token'})
+            | op.map(
+                invalid_request(InvalidRequest,
+                                'Invalid response_type parameter')))
+
+        return op.concat(empty_response_type_branch, authorization_code_branch,
+                         implicit_branch, invalid_response_type_branch)
