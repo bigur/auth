@@ -55,6 +55,7 @@ class ResultObserver(ObserverBase):
 
         else:
             params.update(asdict(response))
+        logger.debug('Response params is %s', params)
 
         response_mode = getattr(request, 'response_mode', 'fragment')
 
@@ -82,9 +83,11 @@ class ResultObserver(ObserverBase):
             })
 
     async def on_next(self, response: OAuth2Response) -> None:
+        logger.debug('Processing response: %s', response)
         self._response = response
 
     async def on_error(self, error: Exception):
+        logger.debug('Processing response error: %s', error)
         self._response = error
 
     async def on_completed(self):
@@ -105,7 +108,11 @@ class OAuth2Handler(View):
         stream = self.__endpoint__(oauth2_request)
 
         result = ResultObserver(oauth2_request)
-        await stream.subscribe(result)
+        try:
+            await stream.subscribe(result)
+        except Exception as e:
+            logger.error('Unknown exception while process request', exc_info=e)
+            raise HTTPInternalServerError() from e
 
         return result.http_response()
 
