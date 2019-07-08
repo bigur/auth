@@ -73,6 +73,32 @@ class TestOIDCAuthorizationEndpoint:
         } == query)
 
     @mark.asyncio
+    async def test_invalid_response_type(self, auth_endpoint, cli, login):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'client_id': 'someid',
+                'scope': 'openid',
+                'redirect_uri': 'https://localhost/feedback',
+                'response_type': 'some_type'
+            },
+            allow_redirects=False)
+        assert 303 == response.status
+        assert 'application/octet-stream' == response.content_type
+
+        assert 'location' in response.headers
+        parsed = urlparse(response.headers['Location'])
+        assert parsed.fragment is not None
+        query = parse_qs(parsed.fragment)
+
+        assert '/feedback' == parsed.path
+
+        assert ({
+            'error': ['invalid_request'],
+            'error_description': ['Invalid \'response_type\' parameter']
+        } == query)
+
+    @mark.asyncio
     async def test_scope_required(self, auth_endpoint, user, cli, login, debug):
         response = await cli.post(
             '/auth/authorize',
