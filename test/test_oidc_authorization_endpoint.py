@@ -20,6 +20,59 @@ class TestOIDCAuthorizationEndpoint:
     '''Tests for authorization endpoint'''
 
     @mark.asyncio
+    async def test_client_id_required(self, auth_endpoint, cli, login):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'scope': 'openid',
+                'response_type': 'id_token',
+                'redirect_uri': 'https://localhost/',
+            },
+            allow_redirects=False)
+        assert 400 == response.status
+        assert 'text/plain' == response.content_type
+        assert '400: Missing \'client_id\' parameter' == await response.text()
+
+    @mark.asyncio
+    async def test_redirect_uri_required(self, auth_endpoint, cli, login):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'client_id': 'someid',
+                'response_type': 'id_token',
+                'scope': 'openid',
+            })
+        assert 400 == response.status
+        assert 'text/plain' == response.content_type
+        assert ('400: Missing \'redirect_uri\' '
+                'parameter') == await response.text()
+
+    @mark.asyncio
+    async def test_response_type_required(self, auth_endpoint, cli, login):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'client_id': 'someid',
+                'scope': 'openid',
+                'redirect_uri': 'https://localhost/feedback',
+            },
+            allow_redirects=False)
+        assert 303 == response.status
+        assert 'application/octet-stream' == response.content_type
+
+        assert 'location' in response.headers
+        parsed = urlparse(response.headers['Location'])
+        assert parsed.fragment is not None
+        query = parse_qs(parsed.fragment)
+
+        assert '/feedback' == parsed.path
+
+        assert ({
+            'error': ['invalid_request'],
+            'error_description': ['Missing \'response_type\' parameter']
+        } == query)
+
+    @mark.asyncio
     async def test_scope_required(self, auth_endpoint, user, cli, login, debug):
         response = await cli.post(
             '/auth/authorize',
@@ -33,48 +86,6 @@ class TestOIDCAuthorizationEndpoint:
         assert response.content_type == 'text/plain'
         assert await response.text() == (
             '400: Missing 1 required argument: \'scope\'')
-
-    @mark.asyncio
-    async def test_client_id_required(self, cli):
-        response = await cli.post(
-            '/auth/authorize',
-            data={
-                'scope': 'openid',
-                'response_type': 'id_token',
-                'redirect_uri': 'https://localhost/',
-            })
-        assert response.status == 400
-        assert response.content_type == 'text/plain'
-        assert await response.text() == (
-            '400: Missing 1 required argument: \'client_id\'')
-
-    @mark.asyncio
-    async def test_response_type_required(self, cli):
-        response = await cli.post(
-            '/auth/authorize',
-            data={
-                'client_id': 'someid',
-                'scope': 'openid',
-                'redirect_uri': 'https://localhost/',
-            })
-        assert response.status == 400
-        assert response.content_type == 'text/plain'
-        assert await response.text() == (
-            '400: Missing 1 required argument: \'response_type\'')
-
-    @mark.asyncio
-    async def test_redirect_uri_required(self, cli):
-        response = await cli.post(
-            '/auth/authorize',
-            data={
-                'client_id': 'someid',
-                'response_type': 'id_token',
-                'scope': 'openid',
-            })
-        assert response.status == 400
-        assert response.content_type == 'text/plain'
-        assert await response.text() == (
-            '400: Missing 1 required argument: \'redirect_uri\'')
 
     @mark.asyncio
     async def test_redirect_to_login_form(self, cli):
