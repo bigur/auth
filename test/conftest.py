@@ -23,6 +23,7 @@ def loop(event_loop):
 def debug(caplog):
     '''Enable debug logging in tests.'''
     caplog.set_level(DEBUG, logger='bigur.auth')
+    return logger.debug
 
 
 # Cryptography
