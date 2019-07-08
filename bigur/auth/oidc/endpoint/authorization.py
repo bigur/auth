@@ -11,7 +11,7 @@ from bigur.auth.oauth2.endpoint.base import Endpoint
 from bigur.auth.oauth2.exceptions import InvalidRequest, OAuth2Error
 from bigur.auth.oauth2.validators import (
     validate_client_id, authenticate_client, validate_redirect_uri)
-from bigur.auth.oidc.endpoint import (authorizatin_code_grant, implicit_grant)
+from bigur.auth.oidc.grant import (authorization_code_grant, implicit_grant)
 from bigur.auth.oidc.request import OIDCRequest
 
 logger = getLogger(__name__)
@@ -39,7 +39,7 @@ class AuthorizationEndpoint(Endpoint):
             | op.filter(lambda x: not x.response_type)
             | op.map(
                 invalid_request(InvalidRequest,
-                                'Missing response_type parameter')))
+                                'Missing \'response_type\' parameter')))
 
         # code token -> fragment
         # code id_token -> fragment
@@ -62,5 +62,4 @@ class AuthorizationEndpoint(Endpoint):
                 invalid_request(InvalidRequest,
                                 'Invalid response_type parameter')))
 
-        return op.concat(empty_response_type_branch, authorization_code_branch,
-                         implicit_branch, invalid_response_type_branch)
+        return empty_response_type_branch

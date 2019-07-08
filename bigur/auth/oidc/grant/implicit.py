@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.serialization import (
     Encoding, PrivateFormat, NoEncryption)
 
 from bigur.auth.oauth2.exceptions import UnsupportedResponseType
-from bigur.auth.oauth2.request import OAuth2Response
+from bigur.auth.oauth2.response import OAuth2Response
 
 logger = getLogger(__name__)
 
