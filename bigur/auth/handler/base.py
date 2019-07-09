@@ -103,9 +103,11 @@ class OAuth2Handler(View):
 
     async def handle(self, params: MultiDictProxy) -> Response:
         request = self.request
-        await authenticate_end_user(request)
-
         app = request.app
+
+        request['params'] = params
+
+        await authenticate_end_user(request)
 
         oauth2_request = self.__request_class__(
             owner=request['user'],
