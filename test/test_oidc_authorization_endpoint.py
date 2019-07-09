@@ -99,76 +99,78 @@ class TestOIDCAuthorizationEndpoint:
         } == query)
 
     @mark.asyncio
-    async def test_scope_required(self, auth_endpoint, user, cli, login, debug):
+    async def test_scope_required(self, auth_endpoint, user, cli, login):
         response = await cli.post(
             '/auth/authorize',
             data={
                 'client_id': 'someid',
+                'redirect_uri': 'https://localhost/feedback',
                 'response_type': 'id_token',
-                'redirect_uri': 'https://localhost/',
             },
             allow_redirects=False)
-        assert response.status == 400
-        assert response.content_type == 'text/plain'
-        assert await response.text() == (
-            '400: Missing 1 required argument: \'scope\'')
+        assert 'application/octet-stream' == response.content_type
+
+        assert 'location' in response.headers
+        parsed = urlparse(response.headers['Location'])
+        assert parsed.fragment is not None
+        query = parse_qs(parsed.fragment)
+
+        assert '/feedback' == parsed.path
+
+        assert ({
+            'error': ['invalid_request'],
+            'error_description': ['Missing \'scope\' parameter']
+        } == query)
 
     @mark.asyncio
-    async def test_redirect_to_login_form(self, cli):
+    async def test_incorrect_client_id(self, auth_endpoint, user, cli, login):
         response = await cli.post(
             '/auth/authorize',
             data={
-                'client_id': 'first',
                 'scope': 'openid',
+                'client_id': 'incorrect',
                 'response_type': 'id_token',
-                'redirect_uri': 'https://localhost/feedback?a=1',
+                'redirect_uri': 'https://localhost/feedback',
             },
             allow_redirects=False)
 
-        assert response.status == 303
-
-        parts = urlparse(response.headers['Location'])
-
-        assert parts.path == '/auth/login'
-
-        query = parse_qs(parts.query)
-        assert query == {
-            'client_id': ['first'],
-            'scope': ['openid'],
-            'response_type': ['id_token'],
-            'redirect_uri': ['https://localhost/feedback?a=1'],
-            'next': ['/auth/authorize']
-        }
+        assert response.status == 400
+        assert response.content_type == 'text/plain; charset=utf-8'
+        assert await response.text == 'Incorrect client_id.'
 
     @mark.asyncio
-    async def test_get_id_token(self, app, cli, login, debug):
+    async def test_get_id_token(self, auth_endpoint, user, client, cli, login,
+                                decode_token, debug):
         response = await cli.post(
             '/auth/authorize',
             data={
                 'client_id': 'incorrect',
                 'scope': 'openid',
                 'response_type': 'id_token',
+                'nonce': '123',
                 'redirect_uri': 'https://localhost/feedback?a=1',
             },
             allow_redirects=False)
 
-        assert response.status == 303
+        assert 303 == response.status
 
-        location = urlparse(response.headers['Location'])
+        assert 'location' in response.headers
+        parsed = urlparse(response.headers['Location'])
 
-        assert location.path == '/feedback'
+        assert '/feedback' == parsed.path
+        assert ({'a': ['1']} == parse_qs(parsed.query))
 
-        assert parse_qs(location.query) == {'a': ['1']}
+        assert parsed.fragment is not None
+        query = parse_qs(parsed.fragment)
 
-        aresp = parse_qs(location.fragment)
-        assert set(aresp.keys()) == {'id_token'}
-        jwt_key = app['jwt_keys'][0]
-        from cryptography.hazmat.primitives.serialization import (Encoding,
-                                                                  PublicFormat)
-        b = jwt_key.public_key().public_bytes(
-            encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo)
-        token = decode(aresp['id_token'][0], b)
-        assert token == {'sub': '123'}
+        assert set(query.keys()) == {'id_token'}
+
+        token = decode_token(query['id_token'][0], audience='incorrect')
+        assert ({'iss', 'sub', 'exp', 'iat', 'nonce',
+                 'aud'} == set(token.keys()))
+        assert ('https://localhost:8889' == token['iss'])
+        assert (user.id == token['sub'])
+        assert ('123' == token['nonce'])
 
     @mark.asyncio
     async def test_ignore_other_params(self, cli, debug):
@@ -185,19 +187,3 @@ class TestOIDCAuthorizationEndpoint:
 
         assert response.status == 200
         assert False, 'test is not ready'
-
-    @mark.asyncio
-    async def test_incorrect_client_id(self, cli, debug):
-        response = await cli.post(
-            '/auth/authorize',
-            data={
-                'scope': 'openid',
-                'client_id': 'incorrect',
-                'response_type': 'id_token',
-                'redirect_uri': 'https://localhost/',
-            },
-            allow_redirects=False)
-
-        assert response.status == 400
-        assert response.content_type == 'text/plain; charset=utf-8'
-        assert await response.text == 'Incorrect client_id.'
