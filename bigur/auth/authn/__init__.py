@@ -38,8 +38,9 @@ async def authenticate_end_user(request: Request) -> Request:
         logger.debug('Cookie is not set, detecting authn method')
 
         handler = None
-        if 'acr' in request['params']:
-            for acr in request['params']['acr'].split(' '):
+        logger.debug('Request params: %s', request['params'])
+        if 'acr_values' in request['params']:
+            for acr in request['params']['acr_values'].split(' '):
                 if acr.startswith('idp:'):
                     logger.debug('Using OpenID Connect authn method')
                     handler = OpenIDConnect(request)
