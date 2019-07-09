@@ -61,12 +61,14 @@ class ResultObserver(ObserverBase):
 
         if response_mode == 'query':
             query.update(params)
-        elif response_mode == 'fragment':
+        elif response_mode is None or response_mode == 'fragment':
             fragment.update(params)
         else:
+            logger.warning('Response mode %s not supported', response_mode)
             raise HTTPBadRequest(reason='Response mode not supported')
 
         if request.redirect_uri is None:
+            logger.debug('Bad request: missing redirect_uri')
             raise HTTPBadRequest(reason='Missing \'redirect_uri\' parameter')
 
         url = urlparse(request.redirect_uri)
@@ -103,8 +105,13 @@ class OAuth2Handler(View):
         request = self.request
         await authenticate_end_user(request)
 
+        app = request.app
+
         oauth2_request = self.__request_class__(
-            owner=request['user'], jwt_keys=request.app['jwt_keys'], **params)
+            owner=request['user'],
+            jwt_keys=app['jwt_keys'],
+            config=app['config'],
+            **params)
         stream = self.__endpoint__(oauth2_request)
 
         result = ResultObserver(oauth2_request)
