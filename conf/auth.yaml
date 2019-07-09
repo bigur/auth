@@ -73,3 +73,6 @@ authn:
 oauth2:
   jwt_keys:
     - /etc/bigur/jwt-key.pem
+
+oidc:
+  iss: http://localhost:8889

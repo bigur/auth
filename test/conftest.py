@@ -57,7 +57,10 @@ def config():
                     'path': '/auth/login'
                 }
             }
-        }
+        },
+        'oidc': {
+            'iss': 'https://localhost:8889',
+        },
     })
     return config
 
@@ -142,8 +145,8 @@ def decode_token(jwt_key):
     public_bytes = jwt_key.public_key().public_bytes(
         encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo)
 
-    def decode(token):
-        return jwt_decode(token, public_bytes, algorithms=['RS256'])
+    def decode(token, **kwargs):
+        return jwt_decode(token, public_bytes, algorithms=['RS256'], **kwargs)
 
     return decode
 
