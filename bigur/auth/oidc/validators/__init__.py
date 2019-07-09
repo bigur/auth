@@ -5,3 +5,4 @@ __licence__ = 'For license information see LICENSE'
 # flake8: noqa
 
 from .response_type import validate_response_type
+from .scope import validate_scope
