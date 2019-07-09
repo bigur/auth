@@ -45,6 +45,10 @@ class UsersCollection(Collection[T, K]):
         raise NotImplementedError
 
 
+class ClientsCollection(Collection[T, K]):
+    pass
+
+
 class Store(ABC):
 
     providers: ProvidersCollection

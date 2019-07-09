@@ -5,7 +5,7 @@ __licence__ = 'For license information see LICENSE'
 from typing import Any, Dict
 from uuid import uuid4
 
-from bigur.auth.model import Object, Provider, User, Human
+from bigur.auth.model import Object, Provider, User, Human, Client
 from bigur.auth.store import abc
 
 
@@ -62,8 +62,16 @@ class UsersCollection(Collection, abc.UsersCollection[User, str]):
         raise KeyError('User not found')
 
 
+class ClientsCollection(Collection, abc.ClientsCollection[Client, str]):
+
+    async def create(self, **kwargs) -> Client:
+        client = Client(**kwargs)
+        await self.put(client)
+
+
 class Memory(abc.Store):
 
     def __init__(self):
         self.providers = ProvidersCollection(self)
         self.users = UsersCollection(self)
+        self.clients = ClientsCollection(self)
