@@ -123,22 +123,6 @@ class TestOIDCAuthorizationEndpoint:
         } == query)
 
     @mark.asyncio
-    async def test_incorrect_client_id(self, auth_endpoint, user, cli, login):
-        response = await cli.post(
-            '/auth/authorize',
-            data={
-                'scope': 'openid',
-                'client_id': 'incorrect',
-                'response_type': 'id_token',
-                'redirect_uri': 'https://localhost/feedback',
-            },
-            allow_redirects=False)
-
-        assert response.status == 400
-        assert response.content_type == 'text/plain; charset=utf-8'
-        assert await response.text == 'Incorrect client_id.'
-
-    @mark.asyncio
     async def test_get_id_token(self, auth_endpoint, user, client, cli, login,
                                 decode_token, debug):
         response = await cli.post(
@@ -171,19 +155,3 @@ class TestOIDCAuthorizationEndpoint:
         assert ('https://localhost:8889' == token['iss'])
         assert (user.id == token['sub'])
         assert ('123' == token['nonce'])
-
-    @mark.asyncio
-    async def test_ignore_other_params(self, cli, debug):
-        response = await cli.post(
-            '/auth/authorize',
-            data={
-                'client_id': 'incorrect',
-                'scope': 'openid',
-                'response_type': 'id_token',
-                'redirect_uri': 'https://localhost/feedback?a=1',
-                'other': 'must_be_ignored'
-            },
-            allow_redirects=False)
-
-        assert response.status == 200
-        assert False, 'test is not ready'
