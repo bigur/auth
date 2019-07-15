@@ -23,7 +23,8 @@ BLOCK_SIZE = 16
 def decrypt(key: bytes, value: bytes) -> str:
     backend = default_backend()
 
-    iv, data = value.split(b':', maxsplit=1)
+    iv = value[:BLOCK_SIZE]
+    data = value[BLOCK_SIZE:]
 
     cipher = Cipher(AES(key), CBC(iv), backend=backend)
     decryptor = cipher.decryptor()
@@ -45,7 +46,7 @@ def crypt(key: bytes, username: str) -> bytes:
     padder = padding.PKCS7(BLOCK_SIZE * 8).padder()
     padded = (padder.update(username.encode('utf-8')) + padder.finalize())
 
-    return iv + b':' + encryptor.update(padded) + encryptor.finalize()
+    return iv + encryptor.update(padded) + encryptor.finalize()
 
 
 class AuthN(View):

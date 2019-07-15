@@ -108,7 +108,8 @@ class TestUserPass:
         cookie = response.cookies['uid']
 
         value = urlsafe_b64decode(cookie.value)
-        iv, data = value.split(b':', maxsplit=1)
+        iv = value[:BLOCK_SIZE]
+        data = value[BLOCK_SIZE:]
 
         backend = default_backend()
         cipher = Cipher(AES(app['cookie_key']), CBC(iv), backend=backend)
