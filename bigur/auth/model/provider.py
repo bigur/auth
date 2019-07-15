@@ -2,7 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from aiohttp import ClientSession
@@ -15,20 +15,21 @@ from bigur.auth.model.base import Object
 class Provider(Object, AbstractProvider):
     issuer: str
     authorization_endpoint: str
-    token_endpoint: str
-    userinfo_endpoint: str
-    revocation_endpoint: str
     jwks_uri: str
     response_types_supported: List[str]
     subject_types_supported: List[str]
     id_token_signing_alg_values_supported: List[str]
-    scopes_supported: List[str]
-    token_endpoint_auth_methods_supported: List[str]
-    claims_supported: List[str]
-    code_challenge_methods_supported: List[str]
-    domains: List[str]
     client_id: str
     client_secret: str
+    token_endpoint: Optional[str] = None
+    userinfo_endpoint: Optional[str] = None
+    revocation_endpoint: Optional[str] = None
+    scopes_supported: List[str] = field(default_factory=list)
+    token_endpoint_auth_methods_supported: List[str] = field(
+        default_factory=list)
+    claims_supported: List[str] = field(default_factory=list)
+    code_challenge_methods_supported: List[str] = field(default_factory=list)
+    domains: List[str] = field(default_factory=list)
     keys: Optional[Dict[str, Dict[str, str]]] = None
 
     def get_authorization_endpoint(self):

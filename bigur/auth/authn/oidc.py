@@ -7,6 +7,7 @@ from dataclasses import asdict
 from json import dumps, loads
 from hashlib import sha256
 from logging import getLogger
+from pprint import pformat
 from typing import List, Union
 from urllib.parse import urlencode
 
@@ -20,8 +21,6 @@ from jwt.exceptions import InvalidKeyError
 
 from bigur.auth.authn.base import AuthN, crypt, decrypt
 from bigur.auth.model.abc import AbstractProvider
-from bigur.auth.oauth2.exceptions import (UserNotAuthenticated,
-                                          InvalidParameter)
 
 logger = getLogger(__name__)
 
@@ -45,7 +44,7 @@ class OpenIDConnect(AuthN):
             acr_values = [x for x in acr_values.split(' ') if x]
 
         for acr_value in acr_values:
-            parts = acr_value.split(':')
+            parts = acr_value.split(':', 1)
             if parts[0] == 'idp':
                 if len(parts) != 2:
                     raise ValueError('Invalid acr parameter')
@@ -54,7 +53,10 @@ class OpenIDConnect(AuthN):
         raise ValueError('Domain is not set in acr parameter')
 
     async def create_provider(self, domain: str) -> AbstractProvider:
-        url = 'https://{}/.well-known/openid-configuration'.format(domain)
+        protocol = self.request.app['config'].get(
+            'authn.oidc.provider_protocol', 'https')
+        url = '{}://{}/.well-known/openid-configuration'.format(
+            protocol, domain)
         logger.debug('Getting configuration from %s', url)
         async with ClientSession() as session:
             try:
@@ -73,12 +75,13 @@ class OpenIDConnect(AuthN):
         if not isinstance(endpoint_cnf, dict):
             raise ConfigurationError('Invalid response while geting '
                                      'configuration for {}'.format(domain))
+        logger.debug('Configuration for provider:\n%s', pformat(endpoint_cnf))
 
         # Set domain for endpoint
         endpoint_cnf['domains'] = [domain]
 
         # Set client_id & client_secret
-        clients = self.request.app['config'].get('authn.oidc.clients')
+        clients = self.request.app['config'].get('authn.oidc.clients', {})
         if domain in clients:
             # Client settings are in config file
             logger.debug('Client config for domain %s: %s', domain,
@@ -118,17 +121,15 @@ class OpenIDConnect(AuthN):
 
     async def authenticate(self):
         request = self.request
-        arequest = request['oauth2_request']
-        try:
-            domain = self.get_domain_from_acr(arequest.acr_values)
-        except ValueError as e:
-            raise InvalidParameter(str(e), request)
+        params = request['params']
 
         try:
-            params = {
-                k: v for k, v in asdict(arequest).items() if v is not None
-            }
+            domain = self.get_domain_from_acr(params['acr_values'])
+        except ValueError:
+            logger.warning('Invalid acr_values parameter')
+            raise HTTPBadRequest()
 
+        try:
             provider = await self.get_provider(domain)
             logger.debug('Using provider %s', provider)
 
@@ -154,29 +155,24 @@ class OpenIDConnect(AuthN):
             nonce = sha256(request['sid'].encode('utf-8')).hexdigest()
 
         except ProviderError as e:
+            logger.warning('Error getting provider configuration: %s', e)
             reason = str(e)
-
-            raise UserNotAuthenticated(
-                reason,
-                request,
-                redirect_uri=request.app['config'].get(
-                    'http_server.endpoints.login.path'),
-                params={
+            raise HTTPSeeOther('{}?{}'.format(
+                request.app['config'].get('http_server.endpoints.login.path'),
+                urlencode({
                     'error':
                         'bigur_oidc_provider_error',
                     'error_description':
                         reason,
                     'next': ('{}?{}'.format(request.path,
                                             urlencode(query=params,
-                                                      doseq=True)))
-                })
+                                                      doseq=True))),
+                })))
 
         else:
-            raise UserNotAuthenticated(
-                'Authentication required',
-                request,
-                redirect_uri=authorization_endpoint,
-                params={
+            raise HTTPSeeOther('{}?{}'.format(
+                authorization_endpoint,
+                urlencode({
                     'redirect_uri':
                         self.endpoint_uri,
                     'client_id':
@@ -188,7 +184,7 @@ class OpenIDConnect(AuthN):
                                 dumps({
                                     'n': nonce,
                                     'u': request.path,
-                                    'p': params
+                                    'p': dict(params)
                                 }))).decode('utf-8'),
                     'scope':
                         scopes,
@@ -196,7 +192,7 @@ class OpenIDConnect(AuthN):
                         'code',
                     'nonce':
                         nonce
-                })
+                })))
 
     async def get(self) -> Response:
         request = self.request

@@ -2,14 +2,14 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from logging import getLogger, DEBUG
+from logging import getLogger, DEBUG, INFO
 
 from pytest import fixture
 
 from aiohttp.pytest_plugin import aiohttp_client  # noqa: F401
 
 logger = getLogger(__name__)
-logger.setLevel(DEBUG)
+logger.setLevel(INFO)
 
 
 # Main loop
@@ -49,6 +49,9 @@ def config():
                 'session_name': 'sid',
                 'id_name': 'uid',
                 'max_age': 3600
+            },
+            'oidc': {
+                'provider_protocol': 'http',
             }
         },
         'http_server': {
