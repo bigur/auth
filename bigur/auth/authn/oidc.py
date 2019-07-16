@@ -205,8 +205,7 @@ class OpenIDConnect(AuthN):
         try:
             state = loads(
                 decrypt(request.app['cookie_key'],
-                        urlsafe_b64decode(
-                            request.query['state'])).decode('utf-8'))
+                        urlsafe_b64decode(request.query['state'])))
 
         except ValueError:
             raise HTTPBadRequest(reason='Can\'t decode state')
@@ -244,134 +243,144 @@ class OpenIDConnect(AuthN):
                     'Id token recieved, but authn cookie does not set')
 
         # Overwise it is callback with code from oidc provider
-        try:
-            try:
-                code = request.query['code']
-            except KeyError:
-                raise InvalidParameter('No code provided', request)
-
-            try:
-                token_endpoint = provider.get_token_endpoint()
-            except AttributeError:
-                raise InvalidParameter('No token endpoint', request)
-
-            response_types = provider.get_response_types_supported()
-            if 'id_token' not in response_types:
-                raise InvalidParameter('Id token not supported', request)
-
-            try:
-                client_id = provider.get_client_id()
-                client_secret = provider.get_client_secret()
-            except AttributeError:
-                raise InvalidParameter('Invalid client credentials', request)
-
-            logger.debug('Getting id_token from %s', token_endpoint)
-            async with ClientSession() as session:
-                try:
-                    data = {
-                        'redirect_uri': self.endpoint_uri,
-                        'code': code,
-                        'client_id': client_id,
-                        'client_secret': client_secret,
-                        'grant_type': 'authorization_code'
-                    }
-                    async with session.post(token_endpoint, data=data) as resp:
-                        if resp.status != 200:
-                            body = await resp.text()
-                            logger.error('Invalid response from provider: %s',
-                                         body)
-                            raise InvalidParameter(
-                                'Can\'t obtain token: {}'.format(resp.status),
-                                self.request)
-                        token_obj = await resp.json()
-
-                except ClientError:
-                    raise InvalidParameter('Can\'t get token', request)
-
-            if not isinstance(token_obj, dict):
-                raise InvalidParameter('Invalid response', request)
-
-            if 'id_token' not in token_obj:
-                raise InvalidParameter('Provider not return token', request)
-
-            if str(token_obj.get('token_type', '')).lower() != 'bearer':
-                raise InvalidParameter('Invalid token type', request)
-
-            try:
-                header = get_unverified_header(token_obj['id_token'])
-                logger.debug('Key header: %s', header)
-            except DecodeError:
-                raise InvalidParameter('Can\'t decode token', request)
-
-            try:
-                alg = get_default_algorithms()[header['alg']]
-            except KeyError:
-                logger.error('Algorythm %s is not supported', header['alg'])
-                raise InvalidParameter('Key algorytm not supported', request)
-
-            try:
-                key = provider.get_key(header['kid'])
-            except KeyError:
-                # Key not found, update provider's keys
-                try:
-                    await provider.update_keys()
-                    key = provider.get_key(header['kid'])
-                except (ClientError, KeyError) as e:
-                    logger.warning(str(e))
-                    raise InvalidParameter(
-                        'Can\'t get key with kid'
-                        ' {}'.format(header['kid']), request)
-
-            try:
-                key = alg.from_jwk(dumps(key))
-            except InvalidKeyError:
-                raise InvalidParameter('Can\'t decode key', request)
-
-            try:
-                payload = decode(token_obj['id_token'], key, audience=client_id)
-            except DecodeError:
-                raise InvalidParameter('Can\'t decode token', request)
-
-            logger.debug('Token id payload: %s', payload)
-
-            if payload['nonce'] != state['n']:
-                raise InvalidParameter('Can\'t verify nonce', request)
-
-            if 'sub' not in payload:
-                raise InvalidParameter('Invalid token', request)
-
-        except InvalidParameter as e:
-            raise HTTPSeeOther('{}?{}'.format(
-                config.get('http_server.endpoints.login.path'),
+        def error_redirect(reason, source: Exception = None):
+            logger.warning('Redirecting with error: %s', reason)
+            exc = HTTPSeeOther('{}?{}'.format(
+                request.app['config'].get('http_server.endpoints.login.path'),
                 urlencode({
-                    'error': 'bigur_oidc_provider_error',
-                    'error_description': str(e),
-                    'next': return_uri
+                    'error':
+                        'bigur_oidc_provider_error',
+                    'error_description':
+                        reason,
+                    'next': ('{}?{}'.format(
+                        request.path, urlencode(query=state['p'], doseq=True))),
                 })))
+            if source is None:
+                raise exc
+            else:
+                raise exc from source
 
-        else:
+        try:
+            code = request.query['code']
+        except KeyError as e:
+            error_redirect('No code provided', e)
+
+        try:
+            token_endpoint = provider.get_token_endpoint()
+        except AttributeError:
+            token_endpoint = None
+        if not token_endpoint:
+            error_redirect('No token endpoint')
+
+        response_types = provider.get_response_types_supported()
+        if 'id_token' not in response_types:
+            error_redirect('ID token not supported')
+
+        try:
+            client_id = provider.get_client_id()
+            client_secret = provider.get_client_secret()
+        except AttributeError as e:
+            error_redirect('Invalid client credentials', e)
+
+        logger.debug('Getting id_token from %s', token_endpoint)
+        async with ClientSession() as session:
             try:
-                user = await self.request.app['store'].users.get_by_oidp(
-                    provider.get_id(), payload['sub'])
-            except KeyError:
-                logger.warning('User %s:%s not found', domain, payload['sub'])
-
-                state['t'] = payload
-
-                template = 'oidc_user_not_exists.j2'
-                context = {
-                    'login_endpoint':
-                        config.get('http_server.endpoints.login.path'),
-                    'registration_endpoint':
-                        config.get('http_server.endpoints.registration.path'),
-                    'next':
-                        config.get('http_server.endpoints.oidc.path'),
-                    'state':
-                        urlsafe_b64encode(
-                            crypt(request.app['cookie_key'],
-                                  dumps(state))).decode('utf-8')
+                data = {
+                    'redirect_uri': self.endpoint_uri,
+                    'code': code,
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'grant_type': 'authorization_code'
                 }
-                return render_template(template, request, context)
+                async with session.post(token_endpoint, data=data) as resp:
+                    if resp.status != 200:
+                        body = await resp.text()
+                        logger.error('Invalid response from provider: %s', body)
+                        error_redirect('Can\'t obtain token from provider')
+                    token_obj = await resp.json()
+
+            except ClientError as e:
+                error_redirect('Can\'t obtain token', e)
+
+        if not isinstance(token_obj, dict):
+            error_redirect('Invalid response from provider')
+
+        if 'id_token' not in token_obj:
+            error_redirect('Invalid response from provider')
+
+        if str(token_obj.get('token_type', '')).lower() != 'bearer':
+            error_redirect('Invalid token type returned by provider')
+
+        try:
+            header = get_unverified_header(token_obj['id_token'])
+            logger.debug('Key header: %s', header)
+        except DecodeError as e:
+            error_redirect('Can\'t decode token', e)
+
+        try:
+            alg = get_default_algorithms()[header['alg']]
+        except KeyError as e:
+            logger.error('Algorythm %s is not supported', header['alg'])
+            error_redirect('Key algorytm not supported', e)
+
+        try:
+            key = provider.get_key(header['kid'])
+        except KeyError:
+            # Key not found, update provider's keys
+            try:
+                await provider.update_keys()
+                key = provider.get_key(header['kid'])
+            except (ClientError, KeyError, TypeError) as e:
+                logger.warning(str(e))
+                error_redirect(
+                    'Can\'t get key with kid'
+                    ' {}'.format(header['kid']), e)
+
+        try:
+            key = alg.from_jwk(dumps(key))
+        except InvalidKeyError as e:
+            error_redirect('Can\'t decode key', e)
+
+        try:
+            # XXX: hardcoded token encryption algorithm
+            payload = decode(
+                token_obj['id_token'],
+                key,
+                audience=client_id,
+                algorithms=['RS256'])
+        except DecodeError as e:
+            error_redirect('Can\'t decode token', e)
+
+        logger.debug('Token id payload: %s', payload)
+
+        if payload['nonce'] != state['n']:
+            error_redirect('Can\'t verify nonce')
+
+        if 'sub' not in payload:
+            error_redirect('Invalid token')
+
+        try:
+            user = await self.request.app['store'].users.get_by_oidp(
+                provider.get_id(), payload['sub'])
+        except KeyError:
+            logger.warning('User %s:%s not found', domain, payload['sub'])
+
+            state['t'] = payload
+
+            template = 'oidc_user_not_exists.j2'
+            context = {
+                'login_endpoint':
+                    config.get('http_server.endpoints.login.path'),
+                'registration_endpoint':
+                    config.get('http_server.endpoints.registration.path'),
+                'next':
+                    config.get('http_server.endpoints.oidc.path'),
+                'state':
+                    urlsafe_b64encode(
+                        crypt(request.app['cookie_key'],
+                              dumps(state))).decode('utf-8')
+            }
+            return render_template(template, request, context)
 
         response = Response(
             status=303,

@@ -58,6 +58,9 @@ def config():
             'endpoints': {
                 'login': {
                     'path': '/auth/login'
+                },
+                'registration': {
+                    'path': '/auth/registration'
                 }
             }
         },
@@ -98,6 +101,7 @@ def app(config, store, jwt_key, cookie_key):
     app['store'] = store
     app['jwt_keys'] = [jwt_key]
     app['cookie_key'] = cookie_key
+    app['provider'] = {}
     templates = normpath(dirname(__file__) + '/../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
     return app
@@ -124,6 +128,20 @@ async def client(store, user):
     from bigur.auth.model import Client
     yield await store.clients.put(
         Client('Test web client', user.id, 'password'))
+
+
+@fixture
+def token(config, user, client, scope='function'):
+    logger.debug('Creating id_token')
+    from time import time
+    from bigur.auth.oidc.grant.implicit import IDToken
+    return IDToken(
+        iss=config.get('oidc.iss'),
+        sub=str(user.id),
+        aud=str(client.id),
+        nonce='test nonce',
+        iat=int(time()),
+        exp=int(time()) + 600)
 
 
 # Client
