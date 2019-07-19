@@ -17,7 +17,7 @@ logger = getLogger(__name__)
 
 @dataclass
 class IDTokenResponse(OAuth2Response):
-    id_token: bytes
+    id_token: Optional[bytes] = None
     state: Optional[str] = None
 
     @property

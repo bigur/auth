@@ -15,7 +15,7 @@ logger = getLogger(__name__)
 
 @dataclass
 class OAuth2TokenResponse(OAuth2Response):
-    token: str
+    token: Optional[str] = None
     state: Optional[str] = None
 
 

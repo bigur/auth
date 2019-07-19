@@ -15,6 +15,7 @@ from bigur.auth.oauth2.grant import (
     authorization_code_grant as oauth2_authorization_code_grant,
     implicit_grant as oauth2_implicit_grant)
 # yapf: enable
+from bigur.auth.oauth2.grant.implicit import OAuth2TokenResponse
 from bigur.auth.oauth2.endpoint.base import Endpoint
 from bigur.auth.oauth2.validators import (
     validate_client_id, authenticate_client, validate_redirect_uri)
@@ -27,7 +28,7 @@ logger = getLogger(__name__)
 
 
 @dataclass
-class AuthorizationResponse(IDTokenResponse):
+class AuthorizationResponse(IDTokenResponse, OAuth2TokenResponse):
     pass
 
 
@@ -85,6 +86,7 @@ def merge_responses():
                 self._subscription = None
 
         async def on_next(self, response):
+            logger.debug('MergeResponsesSubject on_next: %s', response)
             self._params.update(asdict(response))
 
         async def on_completed(self):
@@ -116,13 +118,13 @@ class AuthorizationEndpoint(Endpoint):
             base_branch
             | op.filter(lambda x: x[0] == 'code')
             | op.map(lambda x: x[1])
-            | op.map(oauth2_implicit_grant))
+            | op.map(oauth2_authorization_code_grant))
 
         oauth2_authorization_code_branch = (
             base_branch
             | op.filter(lambda x: x[0] == 'token')
             | op.map(lambda x: x[1])
-            | op.map(oauth2_authorization_code_grant))
+            | op.map(oauth2_implicit_grant))
 
         oidc_implicit_branch = (
             base_branch
