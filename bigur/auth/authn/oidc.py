@@ -230,7 +230,7 @@ class OpenIDConnect(AuthN):
                 logger.debug('Found authn cookie %s', cookie)
                 key = request.app['cookie_key']
                 userid: str = decrypt(key,
-                                      urlsafe_b64decode(cookie)).decode('utf-8')
+                                      urlsafe_b64decode(cookie))
                 await self.link_user_with_oidc(userid, provider.id,
                                                state['t']['sub'])
                 return Response(
