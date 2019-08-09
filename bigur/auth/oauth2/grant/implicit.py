@@ -26,6 +26,7 @@ class OAuth2RSAJWT(RSAJWT):
 
 
 async def implicit_grant(request: OAuth2Request) -> OAuth2Response:
+    logger.debug('OAuth2 implicit grant')
     assert request.owner is not None, (
         'Resource owner is not set, do auth first!')
 

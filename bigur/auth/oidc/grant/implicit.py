@@ -39,7 +39,7 @@ class IDToken(RSAJWT):
 
 
 async def implicit_grant(request: OAuth2Request) -> IDTokenResponse:
-    logger.debug('Implicit grant')
+    logger.debug('OpenID Connect implicit grant')
     assert request.owner is not None, (
         'Resource owner is not set, do auth first!')
 
