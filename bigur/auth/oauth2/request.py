@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from kaptan import Kaptan
 
 from bigur.auth.model import Client, User
+from bigur.auth.oauth2.token import Token
 
 logger = getLogger(__name__)
 
@@ -34,6 +35,9 @@ class OAuth2Request:
 
     # Internal parameters
     client: Optional[Client] = None
+
+    access_token: Optional[Token] = None
+    refresh_token: Optional[Token] = None
 
     def __post_init__(self):
         keys = {x.name for x in fields(self) if x.type == Set[str]}

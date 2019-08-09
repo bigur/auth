@@ -155,3 +155,44 @@ class TestOIDCAuthorizationEndpoint:
         assert ('https://localhost:8889' == token['iss'])
         assert (user.id == token['sub'])
         assert ('123' == token['nonce'])
+
+    @mark.asyncio
+    async def test_get_id_token_token(self, auth_endpoint, user, client, cli,
+                                      login, decode_token, debug):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'client_id': 'incorrect',
+                'scope': 'openid',
+                'response_type': 'id_token token',
+                'nonce': '123',
+                'redirect_uri': 'https://localhost/feedback?a=1',
+            },
+            allow_redirects=False)
+
+        assert 303 == response.status
+
+        assert 'location' in response.headers
+        parsed = urlparse(response.headers['Location'])
+
+        assert '/feedback' == parsed.path
+        assert ({'a': ['1']} == parse_qs(parsed.query))
+
+        assert parsed.fragment is not None
+        query = parse_qs(parsed.fragment)
+
+        assert set(query.keys()) == {'id_token', 'token'}
+
+        token = decode_token(query['id_token'][0], audience='incorrect')
+        assert ({'iss', 'sub', 'exp', 'iat', 'nonce', 'aud',
+                 'at_hash'} == set(token.keys()))
+        assert ('https://localhost:8889' == token['iss'])
+        assert (user.id == token['sub'])
+        assert ('123' == token['nonce'])
+
+        from base64 import urlsafe_b64encode
+        from hashlib import sha256
+        at_hash = urlsafe_b64encode(
+            sha256(query['token'][0].encode('utf-8')).digest()[:16]).decode(
+                'utf-8').rstrip('=')
+        assert at_hash == token['at_hash']

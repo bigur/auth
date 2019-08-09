@@ -2,7 +2,9 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
+from base64 import urlsafe_b64encode
 from dataclasses import asdict, dataclass
+from hashlib import sha256
 from logging import getLogger
 from pprint import pformat
 from time import time
@@ -33,6 +35,7 @@ class IDToken(RSAJWT):
     iat: int
     exp: int
     nonce: str
+    at_hash: Optional[str] = None
 
 
 async def implicit_grant(request: OAuth2Request) -> IDTokenResponse:
@@ -47,6 +50,11 @@ async def implicit_grant(request: OAuth2Request) -> IDTokenResponse:
         nonce=request.nonce,
         iat=int(time()),
         exp=int(time()) + 600)
+
+    if request.access_token is not None:
+        encoded_token = request.access_token.encode(request.jwt_keys[0])
+        token.at_hash = urlsafe_b64encode(
+            sha256(encoded_token).digest()[:16]).decode('utf-8').rstrip('=')
 
     logger.debug('Token payload:\n%s', pformat(asdict(token)))
 

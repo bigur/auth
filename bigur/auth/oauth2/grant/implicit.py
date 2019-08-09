@@ -29,7 +29,9 @@ async def implicit_grant(request: OAuth2Request) -> OAuth2Response:
     assert request.owner is not None, (
         'Resource owner is not set, do auth first!')
 
-    token = OAuth2RSAJWT(sub=request.owner, scope=list(request.scope))
+    request.access_token = OAuth2RSAJWT(
+        sub=request.owner, scope=list(request.scope))
 
     return OAuth2TokenResponse(
-        token=token.encode(request.jwt_keys[0]), state=request.state)
+        token=request.access_token.encode(request.jwt_keys[0]),
+        state=request.state)

@@ -17,8 +17,9 @@ from bigur.auth.oauth2.grant import (
 # yapf: enable
 from bigur.auth.oauth2.grant.implicit import OAuth2TokenResponse
 from bigur.auth.oauth2.endpoint.base import Endpoint
-from bigur.auth.oauth2.validators import (
-    validate_client_id, authenticate_client, validate_redirect_uri)
+from bigur.auth.oauth2.validators import (validate_client_id,
+                                          authenticate_client,
+                                          validate_redirect_uri)
 from bigur.auth.oidc.grant import implicit_grant
 from bigur.auth.oidc.grant.implicit import IDTokenResponse
 from bigur.auth.oidc.request import OIDCRequest
@@ -55,7 +56,9 @@ def iter_response_types():
 
         async def on_next(self, request: OIDCRequest):
             if not self.is_stopped:
-                for response_type in request.response_type:
+                for response_type in sorted(
+                        request.response_type,
+                        key=lambda x: x == 'id_token' and 1 or 0):
                     await super().on_next((response_type, request))
 
     def iter_base(source: ObservableType):

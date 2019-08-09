@@ -2,14 +2,17 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from hashlib import sha1
 from typing import Dict, List, Union
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding, PrivateFormat, NoEncryption)
+from cryptography.hazmat.primitives.serialization import (Encoding,
+                                                          PrivateFormat,
+                                                          NoEncryption)
 from jwt import encode as jwt_encode
+
+from bigur.auth.utils import asdict
 
 
 @dataclass
