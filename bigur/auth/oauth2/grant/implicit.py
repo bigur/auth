@@ -15,7 +15,7 @@ logger = getLogger(__name__)
 
 @dataclass
 class OAuth2TokenResponse(OAuth2Response):
-    token: Optional[str] = None
+    access_token: Optional[str] = None
     state: Optional[str] = None
 
 
@@ -33,5 +33,5 @@ async def implicit_grant(request: OAuth2Request) -> OAuth2Response:
         sub=request.owner, scope=list(request.scope))
 
     return OAuth2TokenResponse(
-        token=request.access_token.encode(request.jwt_keys[0]),
+        access_token=request.access_token.encode(request.jwt_keys[0]),
         state=request.state)
