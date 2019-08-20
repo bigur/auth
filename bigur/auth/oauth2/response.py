@@ -6,5 +6,15 @@ from dataclasses import dataclass
 
 
 @dataclass
-class OAuth2Response:
+class BaseResponse:
+    pass
+
+
+@dataclass
+class OAuth2Response(BaseResponse):
+    pass
+
+
+@dataclass
+class JSONResponse(BaseResponse):
     pass

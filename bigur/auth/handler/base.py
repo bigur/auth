@@ -6,7 +6,7 @@ from logging import getLogger
 from typing import Dict, Optional
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
-from aiohttp.web import Response, View
+from aiohttp.web import Response, View, json_response
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPInternalServerError)
 
 from multidict import MultiDictProxy
@@ -18,7 +18,7 @@ from bigur.auth.oauth2.endpoint import Endpoint
 from bigur.auth.oauth2.exceptions import (OAuth2FatalError,
                                           OAuth2RedirectionError)
 from bigur.auth.oauth2.request import OAuth2Request
-from bigur.auth.oauth2.response import OAuth2Response
+from bigur.auth.oauth2.response import OAuth2Response, JSONResponse
 from bigur.auth.utils import asdict
 
 logger = getLogger(__name__)
@@ -38,7 +38,10 @@ class ResultObserver(ObserverBase):
         fragment: Dict[str, str] = {}
         query: Dict[str, str] = {}
 
-        if isinstance(response, OAuth2FatalError):
+        if isinstance(response, JSONResponse):
+            return json_response(asdict(response))
+
+        elif isinstance(response, OAuth2FatalError):
             raise HTTPBadRequest(reason=str(response)) from response
 
         elif isinstance(response, OAuth2RedirectionError):

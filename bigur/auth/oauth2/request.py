@@ -9,21 +9,24 @@ from typing import List, Optional, Set
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from kaptan import Kaptan
 
-from bigur.auth.model import Client, User
+from bigur.auth.model import Client
 from bigur.auth.oauth2.token import Token
 
 logger = getLogger(__name__)
 
 
 @dataclass
-class OAuth2Request:
-
+class BaseRequest:
     # Resource owner
-    owner: User
+    owner: str
 
     # Configured RSA JWT keys
     config: Kaptan
     jwt_keys: List[RSAPrivateKey]
+
+
+@dataclass
+class OAuth2Request(BaseRequest):
 
     # RFC 6749 parameters
     client_id: Optional[str] = None

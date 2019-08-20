@@ -4,15 +4,20 @@ __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
 
-from aiohttp.web import View, json_response
 from aiohttp_cors import CorsViewMixin, ResourceOptions, custom_cors
+
+from bigur.auth.handler.base import OAuth2Handler
+from bigur.auth.oidc.endpoint.userinfo import UserInfoEndpoint, UserInfoRequest
 
 logger = getLogger(__name__)
 
 
-class UserInfoHandler(View, CorsViewMixin):
+class UserInfoHandler(OAuth2Handler, CorsViewMixin):
 
-    @custom_cors({'*': ResourceOptions()})
+    __endpoint__ = UserInfoEndpoint
+    __request_class__ = UserInfoRequest
+
+    @custom_cors(
+        {'*': ResourceOptions(allow_credentials=True, allow_headers='*')})
     async def get(self):
-        logger.warning('UserInfo endpoint stub')
-        return json_response({})
+        return await super().get()

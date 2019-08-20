@@ -5,3 +5,4 @@ __licence__ = 'For license information see LICENSE'
 # flake8: noqa
 
 from .authorization import AuthorizationEndpoint
+from .userinfo import UserInfoEndpoint
