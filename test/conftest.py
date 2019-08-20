@@ -154,7 +154,7 @@ async def cookie_jar():
 
 
 @fixture(scope='function')  # noqa: F811
-def cli(loop, app, cookie_jar, aiohttp_client):
+def cli(loop, app, cookie_jar, aiohttp_client):  # noqa
     return loop.run_until_complete(aiohttp_client(app, cookie_jar=cookie_jar))
 
 
