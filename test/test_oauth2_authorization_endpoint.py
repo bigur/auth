@@ -102,11 +102,11 @@ class TestAuthorizationEndpoint:
         assert parsed.fragment
 
         query = parse_qs(parsed.fragment)
-        assert {x for x in query.keys()} == {'token', 'state'}
+        assert {x for x in query.keys()} == {'access_token', 'state'}
 
         assert query['state'] == ['blah']
 
-        payload = decode_token(query['token'][0])
+        payload = decode_token(query['access_token'][0])
         assert set(payload.keys()) == {'sub', 'scope'}
         assert payload['sub'] == user.id
         assert set(payload['scope']) == {'one', 'two'}

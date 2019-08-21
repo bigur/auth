@@ -124,7 +124,7 @@ class TestOIDCAuthorizationEndpoint:
 
     @mark.asyncio
     async def test_get_id_token(self, auth_endpoint, user, client, cli, login,
-                                decode_token, debug):
+                                decode_token):
         response = await cli.post(
             '/auth/authorize',
             data={
@@ -158,7 +158,7 @@ class TestOIDCAuthorizationEndpoint:
 
     @mark.asyncio
     async def test_get_id_token_token(self, auth_endpoint, user, client, cli,
-                                      login, decode_token, debug):
+                                      login, decode_token):
         response = await cli.post(
             '/auth/authorize',
             data={
@@ -181,7 +181,7 @@ class TestOIDCAuthorizationEndpoint:
         assert parsed.fragment is not None
         query = parse_qs(parsed.fragment)
 
-        assert set(query.keys()) == {'id_token', 'token'}
+        assert set(query.keys()) == {'id_token', 'access_token'}
 
         token = decode_token(query['id_token'][0], audience='incorrect')
         assert ({'iss', 'sub', 'exp', 'iat', 'nonce', 'aud',
@@ -193,6 +193,6 @@ class TestOIDCAuthorizationEndpoint:
         from base64 import urlsafe_b64encode
         from hashlib import sha256
         at_hash = urlsafe_b64encode(
-            sha256(query['token'][0].encode('utf-8')).digest()[:16]).decode(
-                'utf-8').rstrip('=')
+            sha256(query['access_token'][0].encode('utf-8')).digest()
+            [:16]).decode('utf-8').rstrip('=')
         assert at_hash == token['at_hash']
