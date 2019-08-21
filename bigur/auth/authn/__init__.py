@@ -11,6 +11,7 @@ from .base import decrypt
 from .oidc import OpenIDConnect
 from .registration import Registration  # noqa
 from .user_pass import UserPass
+from .token import Token
 
 logger = getLogger(__name__)
 
@@ -38,8 +39,14 @@ async def authenticate_end_user(request: Request) -> Request:
         logger.debug('Cookie is not set, detecting authn method')
 
         handler = None
+
         logger.debug('Request params: %s', request['params'])
-        if 'acr_values' in request['params']:
+
+        if 'Authorization' in request.headers:
+            logger.debug('Using token authn method')
+            handler = Token(request)
+
+        elif 'acr_values' in request['params']:
             for acr in request['params']['acr_values'].split(' '):
                 if acr.startswith('idp:'):
                     logger.debug('Using OpenID Connect authn method')
@@ -50,7 +57,7 @@ async def authenticate_end_user(request: Request) -> Request:
             logger.debug('Using login/password authn method')
             handler = UserPass(request)
 
-        await handler.authenticate()
+        user_id = await handler.authenticate()
 
     request['user'] = user_id
 

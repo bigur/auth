@@ -9,8 +9,9 @@ from typing import Dict, List, Union
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.serialization import (Encoding,
                                                           PrivateFormat,
+                                                          PublicFormat,
                                                           NoEncryption)
-from jwt import encode as jwt_encode
+from jwt import encode as jwt_encode, decode as jwt_decode
 
 from bigur.auth.utils import asdict
 
@@ -35,8 +36,15 @@ class JWT(BearerToken):
 @dataclass
 class RSAJWT(JWT):
 
-    def encode(self, private_key: RSAPrivateKey) -> bytes:
+    @classmethod
+    def decode(cls, private_key: RSAPrivateKey, token_bytes: str) -> str:
+        public_bytes = private_key.public_key().public_bytes(
+            encoding=Encoding.PEM, format=PublicFormat.SubjectPublicKeyInfo)
+        token = jwt_decode(
+            token_bytes, public_bytes, algorithms=['RS256'], verify=False)
+        return token['sub']
 
+    def encode(self, private_key: RSAPrivateKey) -> bytes:
         private_bytes = private_key.private_bytes(
             encoding=Encoding.PEM,
             format=PrivateFormat.TraditionalOpenSSL,

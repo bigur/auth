@@ -72,5 +72,5 @@ class AuthN(View):
             secure=cookie_secure,
             httponly='yes')
 
-    def authenticate(self):
+    async def authenticate(self):
         raise NotImplementedError
