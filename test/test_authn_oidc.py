@@ -150,8 +150,8 @@ class TestOIDCAuthn(object):
         } == set(query.keys())
         assert [client.id] == query['client_id']
         assert ['code'] == query['response_type']
-        assert (['http://127.0.0.1:{}/auth/oidc'.format(
-            cli.port)] == query['redirect_uri'])
+        assert (['http://127.0.0.1:{}/auth/oidc'.format(cli.port)
+                ] == query['redirect_uri'])  # noqa
         assert ['openid'] == query['scope']
         assert 64 == len(query['nonce'][0])
 
@@ -168,7 +168,7 @@ class TestOIDCAuthn(object):
 
     @mark.asyncio
     async def test_redirect_from_provider(self, app, client, user, token,
-                                          authn_oidc, cli, debug):
+                                          authn_oidc, cli):
         app['provider']['token'] = token
         state = {
             'n': 'test nonce',
