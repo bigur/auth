@@ -8,3 +8,4 @@ from .authorize import AuthorizationHandler
 from .jwks import JWKSHandler
 from .token import TokenHandler
 from .userinfo import UserInfoHandler
+from .well_known import WellKnownHandler

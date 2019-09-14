@@ -31,6 +31,9 @@ http_server:
     port: 8889
 
   endpoints:
+    well-known:
+      path: /.well-known/openid-configuration
+      handler: bigur.auth.handler.oidc.WellKnownHandler
     registration:
       path: /auth/registration
       handler: bigur.auth.authn.Registration
@@ -40,12 +43,18 @@ http_server:
     oidc:
       path: /auth/oidc
       handler: bigur.auth.authn.OpenIDConnect
-    jwks:
-      path: /auth/jwks.json
-      handler: bigur.auth.handlers.JWKSHandler
     authorize:
       path: /auth/authorize
       handler: bigur.auth.handlers.AuthorizeView
+    token:
+      path: /auth/token
+      handler: bigur.auth.handler.oidc.TokenHandler
+    userinfo:
+      path: /auth/userinfo
+      handler: bigur.auth.handler.oidc.UserInfoHandler
+    jwks:
+      path: /auth/jwks.json
+      handler: bigur.auth.handlers.JWKSHandler
 
   static:
     -
