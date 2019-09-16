@@ -13,7 +13,7 @@ I really appreciate your contribution in project.
 - End user registration & authentication
   - User registration
     - [X] Via web-form
-    - [ ] Via JSON request ([#10](/../../issues/10))
+    - [X] Via JSON request
   - Authentication via username & password
     - [X] Via HTML form
     - [ ] Via JSON request ([#11](/../../issues/11))
