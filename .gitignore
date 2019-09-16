@@ -2,7 +2,7 @@
 *.pyc
 __pycache__
 
-# Папка egg-info
+# Folder egg-info
 *.egg-info
 
 # MyPy cache
@@ -24,3 +24,6 @@ __pycache__
 
 # Test coverage cache
 /.coverage
+
+# Build files
+/build
