@@ -9,6 +9,7 @@ from typing import Optional
 from logging import getLogger
 
 from aiohttp.web import Request, Response, View
+from aiohttp_cors import CorsViewMixin, ResourceOptions
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
@@ -49,7 +50,14 @@ def crypt(key: bytes, username: str) -> bytes:
     return iv + encryptor.update(padded) + encryptor.finalize()
 
 
-class AuthN(View):
+class AuthN(View, CorsViewMixin):
+
+    cors_config = {
+        "*": ResourceOptions(
+            allow_credentials=True,
+            allow_headers='*',
+        )
+    }
 
     def set_cookie(self, request: Request, response: Response, userid: str):
 
