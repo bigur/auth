@@ -44,7 +44,7 @@ def get_accept(header_string: str, default='text/plain') -> List[str]:
     for record in [x.strip() for x in header_string.split(',')]:
         parts = record.split(';')
         ctype = parts.pop(0).strip().lower()
-        if ctype == '*':
+        if ctype in ('*', '*/*'):
             ctype = default
         quality: float = 1.0
         for param in parts:
