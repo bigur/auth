@@ -11,14 +11,14 @@ I really appreciate your contribution in project.
 ## Features
 
 - End user registration & authentication
-  - [ ] User registration
-    - [ ] Via web-form
-    - [ ] Via JSON request (#10)
-  - [ ] Authentication via username & password
-    - [ ] Via HTML form
-    - [ ] Via JSON request (#11)
-  - [ ] Authentication via external OpenID connect provider
-  - [ ] HTML-forms customization using [jinja2](https://github.com/pallets/jinja) templates
+  - User registration
+    - [X] Via web-form
+    - [ ] Via JSON request ([#10](/../../issues/10))
+  - Authentication via username & password
+    - [X] Via HTML form
+    - [ ] Via JSON request ([#11](/../../issues/11))
+  - [X] Authentication via external OpenID connect provider
+  - [X] HTML-forms customization using [jinja2](https://github.com/pallets/jinja) templates
 - Database engines
   - [X] Memory (for tests, all data will be lost after restart)
   - [ ] MongoDB
