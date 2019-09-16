@@ -1,7 +1,38 @@
-# auth
+# bigur-auth
 
-[![Join the chat at https://gitter.im/bigur-auth/community](https://badges.gitter.im/bigur-auth/community.svg)](https://gitter.im/bigur-auth/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Documentation Status](https://readthedocs.org/projects/bigur-auth/badge/?version=latest)](https://bigur-auth.readthedocs.io/en/latest/?badge=latest) [![Join the chat at https://gitter.im/bigur-auth/community](https://badges.gitter.im/bigur-auth/community.svg)](https://gitter.im/bigur-auth/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-OpenID connect &amp; OAuth2 server with python async support
+OpenID connect &amp; OAuth2 server writed with python 3 and uses asyncio library.
 
-This project under development and not ready yet. Help are welcome!
+**Warning!** This project under development, please do not use it in production systems.
+
+I really appreciate your contribution in project.
+
+## Features
+
+- End user registration & authentication
+  - [ ] User registration
+    - [ ] Via web-form
+    - [ ] Via JSON request
+  - [ ] Authentication via username & password
+    - [ ] Via HTML form
+    - [ ] Via JSON request
+  - [ ] Authentication via external OpenID connect provider
+  - [ ] HTML-forms customization using [jinja2](https://github.com/pallets/jinja) templates
+- Database engines
+  - [X] Memory (for tests, all data will be lost after restart)
+  - [ ] MongoDB
+  - [ ] PostgreSQL
+  - [ ] MySQL
+- Plugins
+  - [ ] RabbitMQ support
+
+## Installation
+
+External dependencies:
+
+- [RxPY](https://github.com/ReactiveX/RxPY)
+
+## Documentation
+
+Project documentation available at [bigur-auth.readthedocs.io](https://bigur-auth.readthedocs.io/).
