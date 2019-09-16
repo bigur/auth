@@ -13,10 +13,10 @@ I really appreciate your contribution in project.
 - End user registration & authentication
   - [ ] User registration
     - [ ] Via web-form
-    - [ ] Via JSON request
+    - [ ] Via JSON request (#10)
   - [ ] Authentication via username & password
     - [ ] Via HTML form
-    - [ ] Via JSON request
+    - [ ] Via JSON request (#11)
   - [ ] Authentication via external OpenID connect provider
   - [ ] HTML-forms customization using [jinja2](https://github.com/pallets/jinja) templates
 - Database engines
