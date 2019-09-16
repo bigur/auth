@@ -1,4 +1,4 @@
-# bigur-auth
+# bigur.auth
 
 [![Documentation Status](https://readthedocs.org/projects/bigur-auth/badge/?version=latest)](https://bigur-auth.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.org/bigur/auth.svg?branch=master)](https://travis-ci.org/bigur/auth) [![Coverage Status](https://coveralls.io/repos/github/bigur/auth/badge.svg?branch=master)](https://coveralls.io/github/bigur/auth?branch=master) [![Join the chat at https://gitter.im/bigur-auth/community](https://badges.gitter.im/bigur-auth/community.svg)](https://gitter.im/bigur-auth/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
