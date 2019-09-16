@@ -21,3 +21,6 @@ __pycache__
 
 # Doc build
 /doc/_build
+
+# Test coverage cache
+/.coverage
