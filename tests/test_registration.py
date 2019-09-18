@@ -38,7 +38,8 @@ class TestRegistration(object):
                 'family_name': 'Smirnov',
                 'username': 'admin',
                 'password': '123'
-            })
+            },
+            headers={'Accept': 'text/plain'})
         assert (await response.text()) == ('Login successful')
         assert response.headers['Content-Type'] == 'text/plain; charset=utf-8'
         assert response.status == 200
