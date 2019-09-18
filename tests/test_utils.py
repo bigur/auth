@@ -22,7 +22,7 @@ class TestUtils(object):
                           '*/*, '
                           'application/octet-stream; q=0.8'))
 
-    def test_choice_content_type(self, debug):
+    def test_choice_content_type(self):
         assert ('application/json' == choice_content_type([
             ('*/*', 1),
             ('application/json', 0.9),
