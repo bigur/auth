@@ -2,10 +2,11 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
+from collections import defaultdict
 from dataclasses import asdict as asdict_core
 from importlib import import_module
 from sys import modules
-from typing import Dict, List, Set
+from typing import Dict, List, Tuple
 
 
 def import_class(name: str):
@@ -35,7 +36,8 @@ def asdict(self, *, dict_factory=dict):
     return result
 
 
-def get_accept(header_string: str, default='text/plain') -> List[str]:
+def parse_accept(header_string: str,
+                 default='text/plain') -> List[Tuple[str, float]]:
     if not header_string:
         return [default]
 
@@ -44,8 +46,6 @@ def get_accept(header_string: str, default='text/plain') -> List[str]:
     for record in [x.strip() for x in header_string.split(',')]:
         parts = record.split(';')
         ctype = parts.pop(0).strip().lower()
-        if ctype in ('*', '*/*'):
-            ctype = default
         quality: float = 1.0
         for param in parts:
             if '=' not in param:
@@ -60,11 +60,27 @@ def get_accept(header_string: str, default='text/plain') -> List[str]:
                     break
         parsed[ctype] = quality
 
-    return [k for k in reversed(sorted(parsed, key=lambda x: parsed[x]))]
+    return [(k, parsed[k])
+            for k in reversed(sorted(parsed, key=lambda x: parsed[x]))]
 
 
-def choice_content_type(ctypes: List[str], needed: Set[str]) -> str:
-    for accept in ctypes:
-        if accept in needed:
-            return accept
-    return next(iter(needed))
+def choice_content_type(ctypes: List[Tuple[str, float]],
+                        needed: List[str]) -> str:
+    groups: Dict[float, List[str]] = defaultdict(list)
+    for ctype, q in ctypes:
+        groups[q].append(ctype)
+    for q in reversed(sorted(groups)):
+        group = groups[q]
+        for need in needed:
+            need_major, need_minor = need.split('/', 1)
+            for ctype in group:
+                parts = ctype.split('/', 1)
+                if not parts:
+                    continue
+                ctype_major, ctype_minor = parts
+                if ((ctype_major == need_major and
+                     (ctype_minor == need_minor or ctype_minor == '*')) or
+                    (ctype_major == '*' and ctype_minor == '*')):
+                    return need
+    # May be better raise exception?
+    return needed[0]
