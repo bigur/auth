@@ -11,7 +11,7 @@ from aiohttp.web_exceptions import HTTPBadRequest
 from aiohttp_jinja2 import render_template
 from multidict import MultiDict, MultiDictProxy
 
-from bigur.auth.utils import asdict, get_accept, choice_content_type
+from bigur.auth.utils import asdict, parse_accept, choice_content_type
 
 from .base import AuthN
 
@@ -84,9 +84,9 @@ class Registration(AuthN):
                             }, doseq=True))
                 })
         else:
-            accepts = get_accept(request.headers.get('Accept'))
+            accepts = parse_accept(request.headers.get('Accept'))
             ctype = choice_content_type(accepts,
-                                        {'text/plain', 'application/json'})
+                                        ['application/json', 'text/plain'])
             logger.debug('Content-type for response is: %s', ctype)
 
             if ctype == 'application/json':
