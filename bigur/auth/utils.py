@@ -22,12 +22,12 @@ def import_class(name: str):
     return getattr(module, class_name)
 
 
-def asdict(self, *, dict_factory=dict):
+def asdict(obj, *, dict_factory=dict):
     '''Returns :func:`dataclasses.asdict` without `None` values,
     empty lists and dicts.'''
 
     result = dict_factory()
-    for k, v in asdict_core(self).items():
+    for k, v in asdict_core(obj).items():
         if v is None:
             continue
         elif isinstance(v, (list, dict)) and not v:
