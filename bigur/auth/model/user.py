@@ -1,5 +1,5 @@
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
-__copyright__ = '(c) 2016-2018 Business group for development management'
+__copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
 from dataclasses import InitVar, dataclass, field
@@ -25,6 +25,9 @@ class User(Object, AbstractUser):
     def __post_init__(self, password):
         if password is not None:
             self.set_password(password)
+        else:
+            self.salt = None
+            self.crypt = None
         super().__post_init__()
 
     @staticmethod
