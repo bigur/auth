@@ -3,5 +3,6 @@ aiohttp_cors >= 0.7.0
 aiohttp-jinja2 >= 0.8.0
 cryptography >= 2.7.0
 jinja2 >= 2.10.0
+kaptan >= 0.5.10
 pyjwt >= 1.7.0
 rx >= 3.0.0
