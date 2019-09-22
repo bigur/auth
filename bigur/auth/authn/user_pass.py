@@ -73,7 +73,7 @@ class UserPass(AuthN):
 
         accepts = parse_accept(request.headers.get('Accept'))
         response_ctype = choice_content_type(accepts,
-                                             ['text/plain', 'application/json'])
+                                             ['application/json', 'text/plain'])
         logger.debug('Content-type for response is: %s', response_ctype)
 
         error: Optional[str] = None

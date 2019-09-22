@@ -37,7 +37,8 @@ class TestUserPass:
                 'username': 'x' * 1024,
                 'password': '123',
                 'next': '/auth/authorize'
-            })
+            },
+            headers={'Accept': 'text/plain'})
         assert (await response.text()) == ('400: Bad Request')
         assert response.headers['Content-Type'] == 'text/plain; charset=utf-8'
         assert response.status == 400
@@ -50,7 +51,8 @@ class TestUserPass:
                 'username': 'user',
                 'password': '123',
                 'next': '/auth/authorize'
-            })
+            },
+            headers={'Accept': 'text/plain'})
         assert match(r'.*<form.*>.*</form>.*', await response.text(),
                      DOTALL | MULTILINE) is not None
         assert response.headers['Content-Type'] == 'text/html; charset=utf-8'
@@ -59,10 +61,12 @@ class TestUserPass:
     @mark.asyncio
     async def test_login_incorrect(self, authn_userpass, cli):
         response = await cli.post(
-            '/auth/login', data={
+            '/auth/login',
+            data={
                 'username': 'admin',
                 'password': '1234'
-            })
+            },
+            headers={'Accept': 'text/plain'})
         assert match(r'.*<form.*>.*</form>.*', await response.text(),
                      DOTALL | MULTILINE) is not None
         assert response.headers['Content-Type'] == 'text/html; charset=utf-8'
@@ -77,6 +81,7 @@ class TestUserPass:
                 'password': '123',
                 'next': '/auth/authorize?scope=openid&response_type=id_token'
             },
+            headers={'Accept': 'text/plain'},
             allow_redirects=False)
 
         assert response.status == 303
@@ -97,6 +102,7 @@ class TestUserPass:
                 'password': '123',
                 'next': '/auth/authorize?scope=openid&response_type=id_token'
             },
+            headers={'Accept': 'text/plain'},
             allow_redirects=False)
 
         assert response.status == 303
@@ -125,6 +131,7 @@ class TestUserPass:
                 'password': '123',
                 'next': 'http://www.disney.com/'
             },
+            headers={'Accept': 'text/plain'},
             allow_redirects=False)
 
         assert response.status == 400
@@ -137,6 +144,7 @@ class TestUserPass:
                 'username': 'admin',
                 'password': '123',
             },
+            headers={'Accept': 'text/plain'},
             allow_redirects=False)
 
         assert response.status == 200
