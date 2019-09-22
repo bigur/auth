@@ -1,5 +1,5 @@
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
-__copyright__ = '(c) 2016-2019 Business group for development management'
+__copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
 from base64 import urlsafe_b64decode
@@ -42,7 +42,6 @@ class TestUserPass:
         assert response.headers['Content-Type'] == 'text/plain; charset=utf-8'
         assert response.status == 400
 
-    @mark.db_configured
     @mark.asyncio
     async def test_no_such_user(self, authn_userpass, cli):
         response = await cli.post(
@@ -57,7 +56,6 @@ class TestUserPass:
         assert response.headers['Content-Type'] == 'text/html; charset=utf-8'
         assert response.status == 200
 
-    @mark.db_configured
     @mark.asyncio
     async def test_login_incorrect(self, authn_userpass, cli):
         response = await cli.post(
@@ -70,7 +68,6 @@ class TestUserPass:
         assert response.headers['Content-Type'] == 'text/html; charset=utf-8'
         assert response.status == 200
 
-    @mark.db_configured
     @mark.asyncio
     async def test_login_successful(self, user, authn_userpass, cli):
         response = await cli.post(
@@ -91,7 +88,6 @@ class TestUserPass:
         query = parse_qs(parts.query)
         assert query == {'scope': ['openid'], 'response_type': ['id_token']}
 
-    @mark.db_configured
     @mark.asyncio
     async def test_set_cookie(self, app, user, authn_userpass, cli):
         response = await cli.post(
@@ -120,7 +116,6 @@ class TestUserPass:
 
         assert userid.decode('utf-8') == user.id
 
-    @mark.db_configured
     @mark.asyncio
     async def test_bad_redirect_after_login(self, user, authn_userpass, cli):
         response = await cli.post(
@@ -134,9 +129,8 @@ class TestUserPass:
 
         assert response.status == 400
 
-    @mark.db_configured
     @mark.asyncio
-    async def test_login_without_next(self, user, authn_userpass, cli):
+    async def test_login_without_next(self, user, authn_userpass, cli, debug):
         response = await cli.post(
             '/auth/login',
             data={
@@ -149,3 +143,25 @@ class TestUserPass:
         assert (await response.text()) == 'Login successful'
 
         assert 'Location' not in response.headers
+
+    @mark.asyncio
+    async def test_invalid_json(self, user, authn_userpass, cli):
+        response = await cli.post(
+            '/auth/login',
+            headers={'Content-Type': 'application/json'},
+            data=b'{"given_name": "123')
+        assert 400 == response.status
+
+    @mark.asyncio
+    async def test_json_response(self, user, authn_userpass, cli):
+        response = await cli.post(
+            '/auth/login',
+            json={
+                'username': 'admin',
+                'password': '123'
+            },
+            headers={'Accept': 'application/json'})
+        assert 200 == response.status
+        assert ('application/json; '
+                'charset=utf-8' == response.headers['Content-Type'])
+        assert {'meta': {'status': 'ok'}} == (await response.json())

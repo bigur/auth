@@ -3,13 +3,16 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
+from typing import Any, Dict, Optional, cast
 from urllib.parse import urlparse, urlencode
 
-from aiohttp.web import Response
+from aiohttp.web import Response, json_response
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPSeeOther)
 from aiohttp_jinja2 import render_template
+from multidict import MultiDict
 
 from bigur.auth.authn.base import AuthN
+from bigur.auth.utils import choice_content_type, parse_accept
 
 logger = getLogger(__name__)
 
@@ -42,15 +45,44 @@ class UserPass(AuthN):
         return render_template('login_form.j2', self.request, context)
 
     async def post(self) -> Response:
-        query = (await self.request.post()).copy()
+        request = self.request
+        ctype = request.headers.get('content-type')
 
-        error = None
-        error_description = None
+        logger.debug('Request Content-Type: %s', ctype)
 
-        if ('username' in query and 'password' in query):
+        form: MultiDict
+
+        if ctype == 'application/json':
+            try:
+                data: Any = await request.json()
+                if not isinstance(data, dict):
+                    raise ValueError('Invalid request type')
+            except ValueError as e:
+                logger.warning('Invalid request: %s', e)
+                raise HTTPBadRequest(reason='Invalid request') from e
+            else:
+                form = MultiDict(cast(Dict, data))
+
+        elif ctype == 'application/x-www-form-urlencoded':
+            form = (await self.request.post()).copy()
+
+        else:
+            raise HTTPBadRequest(reason='Invalid content type')
+
+        logger.debug('Form is: %s', form)
+
+        accepts = parse_accept(request.headers.get('Accept'))
+        response_ctype = choice_content_type(accepts,
+                                             ['text/plain', 'application/json'])
+        logger.debug('Content-type for response is: %s', response_ctype)
+
+        error: Optional[str] = None
+        error_description: Optional[str] = None
+
+        if ('username' in form and 'password' in form):
             # Check incoming parameters
-            username = str(query.pop('username')).strip()
-            password = str(query.pop('password')).strip()
+            username = str(form.pop('username')).strip()
+            password = str(form.pop('password')).strip()
 
             # Check fields too long
             if (len(username) > FIELD_LENGTH or len(password) > FIELD_LENGTH):
@@ -59,7 +91,7 @@ class UserPass(AuthN):
                 raise HTTPBadRequest()
 
             # Ensure no redirect to external host
-            next_uri = query.get('next')
+            next_uri = form.get('next')
             if next_uri:
                 parsed = urlparse(next_uri)
                 if parsed.scheme or parsed.netloc:
@@ -80,17 +112,20 @@ class UserPass(AuthN):
                     # Login successful
                     logger.debug('Login for user %s successful', username)
 
-                    # No next parameter, no way to redirect
-                    if not next_uri:
-                        response = Response(text='Login successful')
-
-                    # Redirecting
+                    if response_ctype == 'application/json':
+                        response = json_response({'meta': {'status': 'ok'}})
                     else:
-                        response = Response(
-                            status=303,
-                            reason='See Other',
-                            charset='utf-8',
-                            headers={'Location': next_uri})
+                        # No next parameter, no way to redirect
+                        if not next_uri:
+                            response = Response(text='Login successful')
+
+                        # Redirecting
+                        else:
+                            response = Response(
+                                status=303,
+                                reason='See Other',
+                                charset='utf-8',
+                                headers={'Location': next_uri})
 
                     # Set cookie
                     self.set_cookie(self.request, response, user.id)
@@ -102,16 +137,25 @@ class UserPass(AuthN):
                 error = 'bigur_invalid_login'
                 error_description = 'Invalid login or password'
 
-        # Show form
-        context = {
-            'endpoint':
-                self.request.app['config'].get(
-                    'http_server.endpoints.login.path'),
-            'query':
-                query,
-            'error':
-                error,
-            'error_description':
-                error_description
-        }
-        return render_template('login_form.j2', self.request, context)
+        if response_ctype == 'application/json':
+            return json_response({
+                'meta': {
+                    'status': 'error',
+                    'error': error,
+                    'message': error_description
+                }
+            })
+        else:
+            # Show form
+            context = {
+                'endpoint':
+                    self.request.app['config'].get(
+                        'http_server.endpoints.login.path'),
+                'query':
+                    form,
+                'error':
+                    error,
+                'error_description':
+                    error_description
+            }
+            return render_template('login_form.j2', self.request, context)
