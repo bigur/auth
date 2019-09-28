@@ -54,7 +54,7 @@ http_server:
       handler: bigur.auth.handler.oidc.UserInfoHandler
     jwks:
       path: /auth/jwks.json
-      handler: bigur.auth.handlers.oidc.JWKSHandler
+      handler: bigur.auth.handler.oidc.JWKSHandler
 
   static:
     -
@@ -65,7 +65,7 @@ http_server:
 
 authn:
   cookie:
-    key_file: /etc/bigur/cookie.key
+    key_file: /etc/bigur/auth-cookie.key
     write_key: true
     max_age: 3600
     path: /auth
@@ -81,7 +81,7 @@ authn:
 
 oauth2:
   jwt_keys:
-    - /etc/bigur/jwt-key.pem
+    - /etc/bigur/auth-jwt-key.pem
 
 oidc:
   iss: http://localhost:8889
