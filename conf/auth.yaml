@@ -59,7 +59,7 @@ http_server:
   static:
     -
       prefix: /assets
-      path: ./static
+      path: /usr/share/bigur/auth/static
 
   templates: /usr/share/bigur/auth/templates
 
