@@ -26,4 +26,5 @@ __pycache__
 /.coverage
 
 # Build files
+/.pybuild
 /build
