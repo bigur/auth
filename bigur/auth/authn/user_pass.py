@@ -40,6 +40,7 @@ class UserPass(AuthN):
             'query': query,
             'error': query.get('error'),
             'error_description': query.get('error_description'),
+            'prefix': config.get('http_server.static.prefix', '/')
         }
         logger.debug('Returning login form')
         return render_template('login_form.j2', self.request, context)
