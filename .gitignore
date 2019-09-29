@@ -10,6 +10,7 @@ __pycache__
 
 # Development files
 /conf/*.key
+/conf/*.pem
 /conf/*-devel.yaml
 
 # Env
