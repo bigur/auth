@@ -54,6 +54,10 @@ def parse_accept(header_string: str,
             if k.strip() == 'q':
                 try:
                     quality = float(v.strip())
+                    if quality < 0:
+                        quality = 0
+                    elif quality > 1:
+                        quality = 1
                 except ValueError:
                     continue
                 else:
@@ -61,7 +65,7 @@ def parse_accept(header_string: str,
         parsed[ctype] = quality
 
     return [(k, parsed[k])
-            for k in reversed(sorted(parsed, key=lambda x: parsed[x]))]
+            for k in sorted(parsed, key=lambda x: (1 - parsed[x], x))]
 
 
 def choice_content_type(ctypes: List[Tuple[str, float]],

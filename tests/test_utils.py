@@ -22,6 +22,18 @@ class TestUtils(object):
                           '*/*, '
                           'application/octet-stream; q=0.8'))
 
+        assert ([('application/signed-exchange', 1.0),
+                 ('application/xhtml+xml', 1.0), ('image/apng', 1.0),
+                 ('image/webp', 1.0), ('text/html', 1.0),
+                 ('application/xml', 0.9), ('*/*', 0.8)] == parse_accept(
+                     'text/html,'
+                     'application/xhtml+xml,'
+                     'application/xml;q=0.9,'
+                     'image/webp,'
+                     'image/apng,'
+                     '*/*;q=0.8,'
+                     'application/signed-exchange;v=b3'))
+
     def test_choice_content_type(self):
         assert ('application/json' == choice_content_type([
             ('*/*', 1),
@@ -33,3 +45,9 @@ class TestUtils(object):
             ('application/octet-stream', 0.9),
             ('*/*', 0.1),
         ], ['application/octet-stream', 'text/plain']))
+
+        assert ('text/html' == choice_content_type(
+            [('text/html', 1), ('application/xhtml+xml', 1),
+             ('application/xml', 0.9), ('image/webp', 1), ('image/apng', 1),
+             ('*/*', 0.8), ('application/signed-exchange', 1)],
+            ['application/json', 'text/html']))
