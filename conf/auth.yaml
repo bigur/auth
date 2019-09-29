@@ -57,9 +57,8 @@ http_server:
       handler: bigur.auth.handler.oidc.JWKSHandler
 
   static:
-    -
-      prefix: /assets
-      path: /usr/share/bigur/auth/static
+    prefix: /auth/assets
+    path: /usr/share/bigur/auth/static
 
   templates: /usr/share/bigur/auth/templates
 

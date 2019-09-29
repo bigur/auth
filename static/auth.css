@@ -1,15 +1,15 @@
 @font-face {
     font-family: 'Gilroy';
-    src: url("/assets/fonts/gilroy/woff2/Gilroy-Regular.woff2") format("woff2"),
-         url("/assets/fonts/gilroy/woff/Gilroy-Regular.woff") format("woff");
+    src: url("/auth/assets/fonts/gilroy/woff2/Gilroy-Regular.woff2") format("woff2"),
+         url("/auth/assets/fonts/gilroy/woff/Gilroy-Regular.woff") format("woff");
     font-style: normal;
     font-weight: normal;
 }
 
 @font-face {
     font-family: 'Gilroy';
-    src: url("/assets/fonts/gilroy/woff2/Gilroy-Bold.woff2") format("woff2"),
-         url("/assets/fonts/gilroy/woff/Gilroy-Bold.woff") format("woff");
+    src: url("/auth/assets/fonts/gilroy/woff2/Gilroy-Bold.woff2") format("woff2"),
+         url("/auth/assets/fonts/gilroy/woff/Gilroy-Bold.woff") format("woff");
     font-style: normal;
     font-weight: 700;
 }
@@ -67,7 +67,7 @@ header {
 .sign {
     font-size: 0;
     line-height: 0;
-    background: url(/assets/pix/sign-b.png) no-repeat;
+    background: url(/auth/assets/pix/sign-b.png) no-repeat;
     width: 125px;
     height: 35px;
 }

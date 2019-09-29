@@ -53,8 +53,8 @@ for endpoint in app['config'].get('http_server.endpoints').values():
     if issubclass(view, CorsViewMixin):
         cors.add(route)
 
-for endpoint in app['config'].get('http_server.static', []):
-    app.router.add_static(endpoint['prefix'], endpoint['path'])
+endpoint = app['config'].get('http_server.static')
+app.router.add_static(endpoint['prefix'], endpoint['path'])
 
 # Initialize template engine
 templates = app['config'].get('http_server.templates')

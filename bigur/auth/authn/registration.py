@@ -30,7 +30,10 @@ class Registration(AuthN):
                     'http_server.endpoints.registration.path'),
             'query':
                 request.query,
+            'prefix':
+                request.app['config'].get('http_server.static.prefix', '/')
         }
+        logger.debug('Context: %s', context)
         return render_template('registration_form.j2', request, context)
 
     async def post(self) -> Response:

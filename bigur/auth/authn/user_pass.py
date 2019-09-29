@@ -156,6 +156,8 @@ class UserPass(AuthN):
                 'error':
                     error,
                 'error_description':
-                    error_description
+                    error_description,
+                'prefix':
+                    request.app['config'].get('http_server.static.prefix', '/')
             }
             return render_template('login_form.j2', self.request, context)
