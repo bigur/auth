@@ -16,7 +16,7 @@ I really appreciate your contribution in project.
     - [X] Via JSON request
   - Authentication via username & password
     - [X] Via HTML form
-    - [ ] Via JSON request ([#11](/../../issues/11))
+    - [X] Via JSON request
   - [X] Authentication via external OpenID connect provider
   - [X] HTML-forms customization using [jinja2](https://github.com/pallets/jinja) templates
 - Database engines
