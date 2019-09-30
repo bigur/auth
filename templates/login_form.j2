@@ -4,14 +4,14 @@
     <div style="text-align: center;">
         {% if error %}
         <div class="error-box">
-            {{error_description or error}}
+            {{error_description or error | e}}
         </div>
         {% endif %}
         <form action="{{endpoint}}" method="post" class="vertical-form">
-            <input type="text" autocomplete="username" name="username" placeholder="Имя пользователя" value="{{ query.username | urlencode}}">
+            <input type="text" autocomplete="username" name="username" placeholder="Имя пользователя" value="{{ query.username | e}}">
             <input type="password" autocomplete="current-password" placeholder="Пароль" name="password">
             {% for key in ['next', 'state'] %}
-                <input type="hidden" name="{{key}}" value="{{query[key] | urlencode}}">
+                <input type="hidden" name="{{key}}" value="{{query[key] | e}}">
             {% endfor %}
             <button type="submit">Войти</button>
             <a href="/">Забыли пароль?</a>

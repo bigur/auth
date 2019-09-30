@@ -5,14 +5,14 @@
 User not registered!
 
 <form action="{{login_endpoint}}">
-<input type="hidden" name="state" value="{{state}}">
-<input type="hidden" name="next" value="{{next}}">
+<input type="hidden" name="state" value="{{state | e}}">
+<input type="hidden" name="next" value="{{next | e}}">
 <input type="submit" value="Use existing account">
 </form>
 
 <form action="{{registration_endpoint}}">
-<input type="hidden" name="state" value="{{state}}">
-<input type="hidden" name="next" value="{{next}}">
+<input type="hidden" name="state" value="{{state | e}}">
+<input type="hidden" name="next" value="{{next | e}}">
 <input type="submit" value="Register new account">
 </form>
 

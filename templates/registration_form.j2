@@ -12,7 +12,7 @@
 
         {% for key in ['next', 'state'] %}
             {% if query[key] %}
-                <input type="hidden" name="{{key}}" value="{{query[key]}}">
+                <input type="hidden" name="{{key}}" value="{{query[key] | e}}">
             {% endif %}
         {% endfor %}
 
