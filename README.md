@@ -19,6 +19,15 @@ I really appreciate your contribution in project.
     - [X] Via JSON request
   - [X] Authentication via external OpenID connect provider
   - [X] HTML-forms customization using [jinja2](https://github.com/pallets/jinja) templates
+- OAuth2 features
+  - Endpoints
+    - [ ] Authorization endpoint
+    - [ ] Token endpoint
+  - Grant
+    - [ ] Authorization code grant
+    - [ ] Implicit grant
+    - [ ] Resource Owner Password Credentials Grant
+    - [ ] Client Credentials Grant
 - Database engines
   - [X] Memory (for tests, all data will be lost after restart)
   - [ ] MongoDB
