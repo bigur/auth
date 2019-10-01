@@ -2,8 +2,9 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
-from pytest import fixture, mark
 from urllib.parse import urlparse, parse_qs
+
+from pytest import fixture, mark
 
 from bigur.auth.handler.oauth2 import AuthorizationHandler
 

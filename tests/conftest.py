@@ -89,18 +89,20 @@ def cookie_key():
 
 # Server
 @fixture(scope='function')
-def app(config, store, jwt_key, cookie_key):
+def app(loop, config, store, jwt_key, cookie_key):
     logger.debug('Creating application')
     from os.path import dirname, normpath
     from aiohttp.web import Application
     from aiohttp_jinja2 import setup as jinja_setup
     from jinja2 import FileSystemLoader
+    from rx.scheduler.eventloop import AsyncIOScheduler
     from bigur.auth.middlewares import session
     app = Application(middlewares=[session])
     app['config'] = config
     app['store'] = store
     app['jwt_keys'] = [jwt_key]
     app['cookie_key'] = cookie_key
+    app['scheduler'] = AsyncIOScheduler(loop)
     app['provider'] = {}
     templates = normpath(dirname(__file__) + '/../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))

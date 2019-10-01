@@ -15,7 +15,8 @@ from aiohttp.web import View, json_response
 from bigur.auth.authn import OpenIDConnect
 from bigur.auth.authn.base import crypt, decrypt
 from bigur.auth.handler.base import OAuth2Handler
-from bigur.auth.oauth2.endpoint import Endpoint
+
+# from bigur.auth.oauth2.endpoint import Endpoint
 
 
 class ProviderOpenIDConfigHandler(View):
@@ -71,12 +72,8 @@ class ProviderTokenHandler(View):
         })
 
 
-class AuthorizeTestEndpoint(Endpoint):
-    pass
-
-
 class AuthorizeTestHandler(OAuth2Handler):
-    __endpoint__ = AuthorizeTestEndpoint
+    __get_stream__ = None
 
 
 @fixture
@@ -150,8 +147,8 @@ class TestOIDCAuthn(object):
         } == set(query.keys())
         assert [client.id] == query['client_id']
         assert ['code'] == query['response_type']
-        assert (['http://127.0.0.1:{}/auth/oidc'.format(cli.port)
-                ] == query['redirect_uri'])  # noqa
+        assert (['http://127.0.0.1:{}/auth/oidc'.format(
+            cli.port)] == query['redirect_uri'])  # noqa
         assert ['openid'] == query['scope']
         assert 64 == len(query['nonce'][0])
 

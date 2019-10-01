@@ -2,11 +2,14 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
+from asyncio import Task, create_task
 from collections import defaultdict
 from dataclasses import asdict as asdict_core
 from importlib import import_module
 from sys import modules
-from typing import Dict, List, Tuple
+from typing import Awaitable, Callable, Dict, List, Tuple, TypeVar
+
+T = TypeVar('T')
 
 
 def import_class(name: str):
@@ -88,3 +91,15 @@ def choice_content_type(ctypes: List[Tuple[str, float]],
                     return need
     # May be better raise exception?
     return needed[0]
+
+
+def call_async(func: Callable[[T], Awaitable[T]]) -> Callable[[T], Task]:
+    '''Returns function that creates task (:class:`asyncio.Task`) with
+    `func()` coroutine.
+
+    :param func: async function'''
+
+    def invoke(value: T) -> Task:
+        return create_task(func(value))
+
+    return invoke

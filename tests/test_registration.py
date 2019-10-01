@@ -9,6 +9,11 @@ from pytest import fixture, mark
 
 logger = getLogger(__name__)
 
+# TODO: Bad content type
+# TODO: Long fields
+# TODO: Invalid url encoded form
+# TODO: Username already exists
+
 
 @fixture(scope='function')
 def reg_endpoint(app):
@@ -29,7 +34,7 @@ class TestRegistration(object):
                      DOTALL | MULTILINE) is not None
 
     @mark.asyncio
-    async def test_html_registration(self, reg_endpoint, store, cli, debug):
+    async def test_html_registration(self, reg_endpoint, store, cli):
         response = await cli.post(
             '/auth/registration',
             data={
@@ -50,7 +55,7 @@ class TestRegistration(object):
         assert 'Smirnov' == user.family_name
 
     @mark.asyncio
-    async def test_invalid_json(self, reg_endpoint, store, cli, debug):
+    async def test_invalid_json(self, reg_endpoint, store, cli):
         response = await cli.post(
             '/auth/registration',
             headers={'Content-Type': 'application/json'},
@@ -58,7 +63,7 @@ class TestRegistration(object):
         assert 400 == response.status
 
     @mark.asyncio
-    async def test_json_registration(self, reg_endpoint, store, cli, debug):
+    async def test_json_registration(self, reg_endpoint, store, cli):
         response = await cli.post(
             '/auth/registration',
             json={
@@ -88,8 +93,3 @@ class TestRegistration(object):
             'patronymic': user.patronymic,
             'family_name': user.family_name
         } == res_data['data']
-
-    # TODO: Bad content type
-    # TODO: Long fields
-    # TODO: Invalid url encoded form
-    # TODO: Username already exists

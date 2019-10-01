@@ -4,58 +4,43 @@ __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
 
-from bigur.rx import ObservableBase, operators as op
+from rx import Observable, just
+from rx import operators as op
 
 from bigur.auth.oauth2.grant import (authorization_code_grant, implicit_grant)
-from bigur.auth.oauth2.endpoint import Endpoint
-from bigur.auth.oauth2.exceptions import (OAuth2Error, InvalidRequest)
+from bigur.auth.oauth2.exceptions import InvalidRequest
 from bigur.auth.oauth2.request import OAuth2Request
+from bigur.auth.oauth2.response import OAuth2Response
 from bigur.auth.oauth2.validators import (
-    validate_client_id, authenticate_client, validate_redirect_uri)
+    validate_client_id,
+    authenticate_client,
+    validate_redirect_uri,
+    validate_response_type,
+)
+
+from bigur.auth.utils import call_async
 
 logger = getLogger(__name__)
 
 
-class AuthorizationEndpoint(Endpoint):
+def select_flow(request: OAuth2Request) -> Observable:
+    response_type = next(iter(request.response_type))
 
-    def _chain(self, stream: ObservableBase) -> ObservableBase:
+    if response_type == 'code':
+        return just(request).pipe(
+            op.flat_map(call_async(authorization_code_grant)))
+    elif response_type == 'token':
+        return just(request).pipe(op.flat_map(call_async(implicit_grant)))
+    elif response_type == 'id_token':
+        return just(request).pipe(op.flat_map(call_async(implicit_grant)))
+    else:
+        raise InvalidRequest('Invalid response_type parameter')
 
-        def invalid_request(error_class: OAuth2Error, description: str):
 
-            def raise_exception(request: OAuth2Request) -> OAuth2Request:
-                raise error_class(description)
-
-            return raise_exception
-
-        base_branch = (
-            stream
-            | op.map(validate_client_id)
-            | op.map(authenticate_client)
-            | op.map(validate_redirect_uri))
-
-        empty_response_type_branch = (
-            base_branch
-            | op.filter(lambda x: not x.response_type)
-            | op.map(
-                invalid_request(InvalidRequest,
-                                'Missing response_type parameter')))
-
-        implicit_branch = (
-            base_branch
-            | op.filter(lambda x: x.response_type == {'token'})
-            | op.map(implicit_grant))
-
-        authorization_code_branch = (
-            base_branch
-            | op.filter(lambda x: x.response_type == {'code'})
-            | op.map(authorization_code_grant))
-
-        invalid_response_type_branch = (
-            base_branch
-            | op.filter(lambda x: x.response_type - {'code', 'token'})
-            | op.map(
-                invalid_request(InvalidRequest,
-                                'Invalid response_type parameter')))
-
-        return op.concat(empty_response_type_branch, authorization_code_branch,
-                         implicit_branch, invalid_response_type_branch)
+def get_authorization_stream(request: OAuth2Request) -> Observable:
+    return just(request).pipe(
+        op.flat_map(call_async(validate_client_id)),
+        op.flat_map(call_async(authenticate_client)),
+        op.flat_map(call_async(validate_redirect_uri)),
+        op.flat_map(call_async(validate_response_type)),
+        op.flat_map(select_flow))

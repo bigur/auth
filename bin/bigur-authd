@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from asyncio import get_event_loop
 from argparse import ArgumentParser
 from logging import getLogger
 from logging.config import dictConfig
@@ -15,6 +16,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from jinja2 import FileSystemLoader
 from kaptan import Kaptan
+from rx.scheduler.eventloop import AsyncIOScheduler
 
 from bigur.auth.middlewares import session
 from bigur.auth.utils import import_class
@@ -116,6 +118,9 @@ if not app['jwt_keys']:
 store_class = import_class(app['config'].get('store.class'))
 store_config = app['config'].get('store.config', {})
 app['store'] = store_class(**store_config)
+
+# Create rx scheduler
+app['scheduler'] = AsyncIOScheduler(get_event_loop())
 
 # Start web-server
 host = app['config'].get('http_server.bind.host')

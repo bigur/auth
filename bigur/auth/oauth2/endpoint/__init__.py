@@ -4,6 +4,4 @@ __licence__ = 'For license information see LICENSE'
 
 # flake8: noqa
 
-from .base import Endpoint
-
-from .authorization import AuthorizationEndpoint
+from .authorization import get_authorization_stream

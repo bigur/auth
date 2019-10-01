@@ -137,7 +137,7 @@ class TestUserPass:
         assert response.status == 400
 
     @mark.asyncio
-    async def test_login_without_next(self, user, authn_userpass, cli, debug):
+    async def test_login_without_next(self, user, authn_userpass, cli):
         response = await cli.post(
             '/auth/login',
             data={

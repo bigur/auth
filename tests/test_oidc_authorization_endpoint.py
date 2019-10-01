@@ -181,7 +181,7 @@ class TestOIDCAuthorizationEndpoint:
         assert parsed.fragment is not None
         query = parse_qs(parsed.fragment)
 
-        assert set(query.keys()) == {'id_token', 'access_token'}
+        assert {'id_token', 'access_token'} == set(query.keys())
 
         token = decode_token(query['id_token'][0], audience='incorrect')
         assert ({'iss', 'sub', 'exp', 'iat', 'nonce', 'aud',

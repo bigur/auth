@@ -24,7 +24,7 @@ def routing(app):
 class TestTokenAuthn:
 
     @mark.asyncio
-    async def test_auth(self, app, routing, cli, token, debug):
+    async def test_auth(self, app, routing, cli, token):
         token_bytes = token.encode(app['jwt_keys'][0]).decode('utf-8')
         response = await cli.get(
             '/auth/test',

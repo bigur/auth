@@ -7,17 +7,19 @@ from logging import getLogger
 from aiohttp_cors import CorsViewMixin, ResourceOptions, custom_cors
 
 from bigur.auth.handler.base import OAuth2Handler
-from bigur.auth.oidc.endpoint.userinfo import UserInfoEndpoint, UserInfoRequest
+from bigur.auth.oidc.endpoint.userinfo import (UserInfoRequest,
+                                               get_user_info_stream)
 
 logger = getLogger(__name__)
 
 
 class UserInfoHandler(OAuth2Handler, CorsViewMixin):
 
-    __endpoint__ = UserInfoEndpoint
+    __get_stream__ = get_user_info_stream
     __request_class__ = UserInfoRequest
 
-    @custom_cors(
-        {'*': ResourceOptions(allow_credentials=True, allow_headers='*')})
+    @custom_cors({
+        '*': ResourceOptions(allow_credentials=True, allow_headers='*')
+    })
     async def get(self):
         return await super().get()
