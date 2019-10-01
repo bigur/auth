@@ -111,3 +111,25 @@ class TestAuthorizationEndpoint:
         assert set(payload.keys()) == {'sub', 'scope'}
         assert payload['sub'] == user.id
         assert set(payload['scope']) == {'one', 'two'}
+
+    @mark.asyncio
+    async def test_extra_parameters(self, auth_endpoint, user, decode_token,
+                                    cli, login):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'response_type': 'token',
+                'client_id': '123',
+                'scope': 'one two',
+                'redirect_uri': '/response',
+                'state': 'blah',
+                'some': 'extra',
+                'parameters': 'here'
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+
+        parsed = urlparse(response.headers['Location'])
+        query = parse_qs(parsed.fragment)
+        assert {'access_token', 'state'} == {x for x in query.keys()}

@@ -2,6 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
+from dataclasses import fields
 from logging import getLogger
 from typing import Any, Callable, Dict
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
@@ -33,11 +34,17 @@ class OAuth2Handler(View):
         await authenticate_end_user(http_request)
 
         app = http_request.app
-        oauth2_request = self.__request_class__(
-            owner=http_request['user'],
-            jwt_keys=app['jwt_keys'],
-            config=app['config'],
-            **params)
+        kwargs = {
+            'owner': http_request['user'],
+            'jwt_keys': app['jwt_keys'],
+            'config': app['config']
+        }
+        request_fields = {f.name for f in fields(self.__request_class__)}
+        for k, v in params.items():
+            if k in request_fields:
+                kwargs[k] = v
+
+        oauth2_request = self.__request_class__(**kwargs)
 
         response_params: Dict[str, Any] = {}
 
