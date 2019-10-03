@@ -17,6 +17,24 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Build documentation",
+            "type": "shell",
+            "command": "make html",
+            "options": {
+                "cwd": "./doc"
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "group": "build",
+            "problemMatcher": []
         }
     ]
 }
