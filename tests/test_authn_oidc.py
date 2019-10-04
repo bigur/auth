@@ -12,8 +12,8 @@ from urllib.parse import urlparse, parse_qs
 
 from aiohttp.web import View, json_response
 
-from bigur.auth.authn import OpenIDConnect
-from bigur.auth.authn.base import crypt, decrypt
+from bigur.auth.authn.user import OpenIDConnect
+from bigur.auth.authn.user.base import crypt, decrypt
 from bigur.auth.handler.base import OAuth2Handler
 
 # from bigur.auth.oauth2.endpoint import Endpoint
@@ -73,7 +73,15 @@ class ProviderTokenHandler(View):
 
 
 class AuthorizeTestHandler(OAuth2Handler):
-    __get_stream__ = None
+
+    def get_request_class(self):
+        raise NotImplementedError('test')
+
+    def create_stream(self, context):
+        raise NotImplementedError('test')
+
+    async def get(self):
+        return await self.handle(self.request.query)
 
 
 @fixture

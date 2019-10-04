@@ -6,7 +6,8 @@ from logging import getLogger, DEBUG, INFO
 
 from pytest import fixture
 
-from aiohttp.pytest_plugin import aiohttp_client  # noqa: F401
+# pylint: disable=unused-import
+from aiohttp.pytest_plugin import aiohttp_client  # noqa
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -41,8 +42,8 @@ def jwt_key():
 def config():
     logger.debug('Loading configuration')
     from kaptan import Kaptan
-    config = Kaptan()
-    config.import_config({
+    cfg = Kaptan()
+    cfg.import_config({
         'authn': {
             'cookie': {
                 'secure': False,
@@ -68,7 +69,7 @@ def config():
             'iss': 'https://localhost:8889',
         },
     })
-    return config
+    return cfg
 
 
 # Store
@@ -112,7 +113,7 @@ def app(loop, config, store, jwt_key, cookie_key):
 @fixture(scope='function')
 def authn_userpass(app):
     logger.debug('Add userpass authn route')
-    from bigur.auth.authn import UserPass
+    from bigur.auth.authn.user import UserPass
     return app.router.add_route('*', '/auth/login', UserPass)
 
 

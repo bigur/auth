@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 
 from pytest import mark
 
-from bigur.auth.authn.base import BLOCK_SIZE
+from bigur.auth.authn.user.base import BLOCK_SIZE
 
 # TODO: test can't decrypt cookie
 

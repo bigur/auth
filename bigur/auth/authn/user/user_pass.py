@@ -11,8 +11,9 @@ from aiohttp.web_exceptions import (HTTPBadRequest, HTTPSeeOther)
 from aiohttp_jinja2 import render_template
 from multidict import MultiDict
 
-from bigur.auth.authn.base import AuthN
 from bigur.auth.utils import choice_content_type, parse_accept
+
+from bigur.auth.authn.user.base import AuthN
 
 logger = getLogger(__name__)
 

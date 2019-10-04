@@ -19,8 +19,9 @@ from jwt import decode, get_unverified_header, DecodeError
 from jwt.algorithms import get_default_algorithms
 from jwt.exceptions import InvalidKeyError
 
-from bigur.auth.authn.base import AuthN, crypt, decrypt
 from bigur.auth.model.abc import AbstractProvider
+
+from bigur.auth.authn.user.base import AuthN, crypt, decrypt
 
 logger = getLogger(__name__)
 
@@ -229,8 +230,7 @@ class OpenIDConnect(AuthN):
             if cookie:
                 logger.debug('Found authn cookie %s', cookie)
                 key = request.app['cookie_key']
-                userid: str = decrypt(key,
-                                      urlsafe_b64decode(cookie))
+                userid: str = decrypt(key, urlsafe_b64decode(cookie))
                 await self.link_user_with_oidc(userid, provider.id,
                                                state['t']['sub'])
                 return Response(

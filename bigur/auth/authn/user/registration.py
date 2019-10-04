@@ -1,3 +1,5 @@
+'''User registration module.'''
+
 __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
@@ -13,7 +15,7 @@ from multidict import MultiDict, MultiDictProxy
 
 from bigur.auth.utils import asdict, parse_accept, choice_content_type
 
-from .base import AuthN
+from bigur.auth.authn.user.base import AuthN
 
 logger = getLogger(__name__)
 
@@ -21,6 +23,7 @@ FIELD_LEN_LIMIT = 1024
 
 
 class Registration(AuthN):
+    '''User registration class.'''
 
     async def get(self) -> Response:
         request = self.request

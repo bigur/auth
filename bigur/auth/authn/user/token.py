@@ -7,8 +7,9 @@ from urllib.parse import urlencode
 
 from aiohttp.web import HTTPSeeOther
 
-from bigur.auth.authn.base import AuthN
 from bigur.auth.oauth2.token import RSAJWT
+
+from bigur.auth.authn.user.base import AuthN
 
 logger = getLogger(__name__)
 
