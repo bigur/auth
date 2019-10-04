@@ -16,18 +16,16 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-
 # -- Project information -----------------------------------------------------
 
 project = 'bigur-auth'
-copyright = '2019, Gennady Kovalev'
+copyright = '2019, Business group for development management'
 author = 'Gennady Kovalev'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
 release = ''
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -70,7 +68,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -99,12 +96,10 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
-
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'bigur-authdoc'
-
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -134,16 +129,12 @@ latex_documents = [
      'Gennady Kovalev', 'manual'),
 ]
 
-
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'bigur-auth', 'bigur-auth Documentation',
-     [author], 1)
-]
-
+man_pages = [(master_doc, 'bigur-auth', 'bigur-auth Documentation', [author],
+              1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -151,11 +142,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'bigur-auth', 'bigur-auth Documentation',
-     author, 'bigur-auth', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, 'bigur-auth', 'bigur-auth Documentation', author, 'bigur-auth',
+     'One line description of project.', 'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 
@@ -174,10 +163,13 @@ epub_title = project
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
 
-
 # -- Extension configuration -------------------------------------------------
 
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/', None),
+    'rxpy': ('https://rxpy.readthedocs.io/en/latest/', None),
+    'aiohttp': ('https://aiohttp.readthedocs.io/en/stable/', None),
+}

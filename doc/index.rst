@@ -1,20 +1,19 @@
-.. bigur-auth documentation master file, created by
-   sphinx-quickstart on Mon Sep 16 16:36:06 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+============================================
+Bigur's async OAuth2 & OpenID connect server
+============================================
 
-Welcome to bigur-auth's documentation!
-======================================
+The server is ready to serve requests both out of the box and
+after configuration, tuning and customatization to your needs.
+
+Documentation under development now, some chapters are not
+written yet.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   about
+   installation
+   configuration
+   customization
+   reference
+   contributing
