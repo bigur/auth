@@ -11,8 +11,7 @@ from bigur.auth.authn import authenticate_end_user
 class EchoHandler(View):
 
     async def get(self):
-        self.request['params'] = self.request.query
-        await authenticate_end_user(self.request)
+        await authenticate_end_user(self.request, self.request.query)
         return Response(body='test passed')
 
 

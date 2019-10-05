@@ -18,6 +18,7 @@ from aiohttp_jinja2 import render_template
 from jwt import decode, get_unverified_header, DecodeError
 from jwt.algorithms import get_default_algorithms
 from jwt.exceptions import InvalidKeyError
+from multidict import MultiDict
 
 from bigur.auth.model.abc import AbstractProvider
 
@@ -70,8 +71,7 @@ class OpenIDConnect(AuthN):
                             'response code is {}'.format(url, resp.status))
             except ClientError as e:
                 raise ConfigurationError(
-                    'Can\'t get configuration from {}: '
-                    '{}'.format(url), str(e))
+                    'Can\'t get configuration from {}: {}'.format(url, str(e)))
 
         if not isinstance(endpoint_cnf, dict):
             raise ConfigurationError('Invalid response while geting '
@@ -120,9 +120,8 @@ class OpenIDConnect(AuthN):
             self.request.scheme, self.request.host,
             self.request.app['config'].get('http_server.endpoints.oidc.path'))
 
-    async def authenticate(self):
+    async def authenticate(self, params: MultiDict):
         request = self.request
-        params = request['params']
 
         try:
             domain = self.get_domain_from_acr(params['acr_values'])

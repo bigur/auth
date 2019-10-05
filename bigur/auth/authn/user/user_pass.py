@@ -23,9 +23,8 @@ FIELD_LENGTH = 128
 class UserPass(AuthN):
     '''End-user login & password authentication'''
 
-    async def authenticate(self):
+    async def authenticate(self, params: MultiDict):
         request = self.request
-        params = request['params']
         logger.debug('Redirecting to login form')
         raise HTTPSeeOther(location='{}?{}'.format(
             request.app['config'].get('http_server.endpoints.login.path'),

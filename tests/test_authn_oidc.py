@@ -119,7 +119,7 @@ async def authn_oidc(provider_routing, authn_oidc_routing, fix_client_config):
     pass
 
 
-class TestOIDCAuthn(object):
+class TestOIDCAuthn:
     '''Test authentication via third party oidc'''
 
     @mark.asyncio

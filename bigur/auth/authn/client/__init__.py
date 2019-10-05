@@ -5,11 +5,12 @@ __licence__ = 'For license information see LICENSE'
 from logging import getLogger
 
 from aiohttp.web import Request
+from multidict import MultiDict
 
 logger = getLogger(__name__)
 
 
-async def authenticate_client(request: Request) -> None:
+async def authenticate_client(request: Request, params: MultiDict) -> None:
     '''This method do client authentication. If it finished sucessfull
     method return nothing, overwise raises http error.
 

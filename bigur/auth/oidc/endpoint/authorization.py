@@ -16,10 +16,7 @@ from bigur.auth.oauth2.grant import (
 from bigur.auth.oauth2.grant.implicit import OAuth2TokenResponse
 from bigur.auth.oauth2.exceptions import InvalidRequest
 from bigur.auth.oauth2.validators import (
-    validate_client_id,
-    authenticate_client,
-    validate_redirect_uri,
-)
+    validate_redirect_uri,)
 from bigur.auth.oidc.grant import implicit_grant
 from bigur.auth.oidc.grant.implicit import IDTokenResponse
 from bigur.auth.oidc.request import OIDCRequest
@@ -63,8 +60,6 @@ def get_authorization_stream(request: OIDCRequest) -> Observable:
 
     # yapf: disable
     return just(request).pipe(
-        op.flat_map(call_async(validate_client_id)),
-        op.flat_map(call_async(authenticate_client)),
         op.flat_map(call_async(validate_redirect_uri)),
         op.flat_map(call_async(validate_response_type)),
         op.flat_map(call_async(validate_scope)),

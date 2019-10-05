@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 from cryptography.hazmat.primitives.ciphers import Cipher
+from multidict import MultiDict
 
 logger = getLogger(__name__)
 
@@ -80,5 +81,5 @@ class AuthN(View, CorsViewMixin):
             secure=cookie_secure,
             httponly='yes')
 
-    async def authenticate(self):
+    async def authenticate(self, params: MultiDict):
         raise NotImplementedError

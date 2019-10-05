@@ -70,7 +70,7 @@ class TestAuthorizationEndpoint:
         assert parsed.fragment
 
         query = parse_qs(parsed.fragment)
-        assert {x for x in query.keys()} == {'error', 'error_description'}
+        assert set(query) == {'error', 'error_description'}
 
         assert query['error'] == ['invalid_request']
         assert (query['error_description'] == [
@@ -91,26 +91,26 @@ class TestAuthorizationEndpoint:
             },
             allow_redirects=False)
 
-        assert response.status == 303
-        assert response.content_type == 'application/octet-stream'
+        assert 303 == response.status
+        assert 'application/octet-stream' == response.content_type
 
         parsed = urlparse(response.headers['Location'])
 
-        assert parsed.scheme == ''
-        assert parsed.netloc == ''
-        assert parsed.path == '/response'
-        assert parsed.query == ''
+        assert '' == parsed.scheme
+        assert '' == parsed.netloc
+        assert '/response' == parsed.path
+        assert '' == parsed.query
         assert parsed.fragment
 
         query = parse_qs(parsed.fragment)
-        assert {x for x in query.keys()} == {'access_token', 'state'}
+        assert {'access_token', 'state'} == {x for x in query.keys()}
 
-        assert query['state'] == ['blah']
+        assert ['blah'] == query['state']
 
         payload = decode_token(query['access_token'][0])
-        assert set(payload.keys()) == {'sub', 'scope'}
-        assert payload['sub'] == user.id
-        assert set(payload['scope']) == {'one', 'two'}
+        assert {'sub', 'scope'} == set(payload.keys())
+        assert user.id == payload['sub']
+        assert {'one', 'two'} == set(payload['scope'])
 
     @mark.asyncio
     async def test_extra_parameters(self, auth_endpoint, user, decode_token,
@@ -128,8 +128,35 @@ class TestAuthorizationEndpoint:
             },
             allow_redirects=False)
 
-        assert response.status == 303
+        assert 303 == response.status
 
         parsed = urlparse(response.headers['Location'])
         query = parse_qs(parsed.fragment)
         assert {'access_token', 'state'} == {x for x in query.keys()}
+
+    @mark.asyncio
+    async def test_auth_code_grant(self, auth_endpoint, user, cli, login):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'response_type': 'code',
+                'client_id': 'someid',
+                'state': 'smthng',
+                'redirect_uri': '/response',
+            },
+            allow_redirects=False)
+
+        assert 303 == response.status
+
+        parsed = urlparse(response.headers['Location'])
+
+        assert '' == parsed.scheme
+        assert '' == parsed.netloc
+        assert '/response' == parsed.path
+        assert '' == parsed.query
+        assert parsed.fragment
+
+        query = parse_qs(parsed.fragment)
+        assert {'code', 'state'} == {x for x in query.keys()}
+
+        assert ['smthng'] == query['state']

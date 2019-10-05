@@ -15,9 +15,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from jinja2 import FileSystemLoader
-from kaptan import Kaptan
 from rx.scheduler.eventloop import AsyncIOScheduler
 
+from bigur.auth.config import config
 from bigur.auth.middlewares import session
 from bigur.auth.utils import import_class
 
@@ -38,32 +38,31 @@ args = argparser.parse_args()
 app = Application(middlewares=[session])
 
 # Load configuration
-app['config'] = Kaptan(handler='yaml')
-app['config'].import_config(args.config)
+config.import_config(args.config)
 
 # Init logger
-dictConfig(app['config'].get('logging'))
+dictConfig(config.get('logging'))
 logger = getLogger(basename(argv[0]))
 
 # Setup CORS
 cors = setup_cors(app)
 
 # Setup routing
-for endpoint in app['config'].get('http_server.endpoints').values():
+for endpoint in config.get('http_server.endpoints').values():
     view = import_class(endpoint['handler'])
     route = app.router.add_route('*', endpoint['path'], view)
     if issubclass(view, CorsViewMixin):
         cors.add(route)
 
-endpoint = app['config'].get('http_server.static')
+endpoint = config.get('http_server.static')
 app.router.add_static(endpoint['prefix'], endpoint['path'])
 
 # Initialize template engine
-templates = app['config'].get('http_server.templates')
+templates = config.get('http_server.templates')
 jinja_setup(app, loader=FileSystemLoader(templates))
 
 # Load/generate cookie crypt key
-key_file = app['config'].get('authn.cookie.key_file')
+key_file = config.get('authn.cookie.key_file')
 
 try:
     with open(key_file, 'rb') as fh_cookie_read:
@@ -72,7 +71,7 @@ try:
 except OSError as e:
     logger.warning('Error while read cookie key: %s', e)
     key = urandom(32)
-    if app['config'].get('authn.cookie.write_key'):
+    if config.get('authn.cookie.write_key'):
         logger.warning('Writing new cookie key to file: %s', key_file)
         try:
             with open(key_file, 'wb') as fh_cookie_write:
@@ -85,7 +84,7 @@ app['cookie_key'] = key
 # Load/generate RSA key for JWT
 backend = default_backend()
 app['jwt_keys'] = []
-filenames = app['config'].get('oauth2.jwt_keys', [])
+filenames = config.get('oauth2.jwt_keys', [])
 for jwt_key_file in filenames:
     try:
         with open(jwt_key_file, 'rb') as fh_jwt_read:
@@ -115,16 +114,16 @@ if not app['jwt_keys']:
         index += 1
 
 # Initialize store
-store_class = import_class(app['config'].get('store.class'))
-store_config = app['config'].get('store.config', {})
+store_class = import_class(config.get('store.class'))
+store_config = config.get('store.config', {})
 app['store'] = store_class(**store_config)
 
 # Create rx scheduler
 app['scheduler'] = AsyncIOScheduler(get_event_loop())
 
 # Start web-server
-host = app['config'].get('http_server.bind.host')
-port = app['config'].get('http_server.bind.port')
+host = config.get('http_server.bind.host')
+port = config.get('http_server.bind.port')
 
 logger.info('Bigur OpenID connect / OAuth2 server started at %s:%s', host, port)
 run_app(app, host=host, port=port, print=lambda x: None)

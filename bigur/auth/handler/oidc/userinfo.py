@@ -4,6 +4,7 @@ __licence__ = 'For license information see LICENSE'
 
 from logging import getLogger
 
+from aiohttp.web import Response
 from aiohttp_cors import CorsViewMixin, ResourceOptions, custom_cors
 
 from bigur.auth.handler.base import OAuth2Handler

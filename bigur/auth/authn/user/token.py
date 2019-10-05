@@ -6,6 +6,7 @@ from logging import getLogger
 from urllib.parse import urlencode
 
 from aiohttp.web import HTTPSeeOther
+from multidict import MultiDict
 
 from bigur.auth.oauth2.token import RSAJWT
 
@@ -16,9 +17,8 @@ logger = getLogger(__name__)
 
 class Token(AuthN):
 
-    async def authenticate(self):
+    async def authenticate(self, params: MultiDict):
         request = self.request
-        params = request['params']
 
         token_bytes = request.headers.get('Authorization', '')
         token_bytes = token_bytes.lstrip('Bearer').strip()

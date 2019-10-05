@@ -4,17 +4,19 @@ __licence__ = 'For license information see LICENSE'
 
 from dataclasses import fields
 from logging import getLogger
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Type, cast
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
-from aiohttp.web import Response, View, json_response
+from aiohttp.web import Request, Response, View, json_response
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPInternalServerError)
+from multidict import MultiDict
 from rx import Observable
-from multidict import MultiDictProxy
 
-from bigur.auth.authn import authenticate_end_user
+from bigur.auth.authn import authenticate_client, authenticate_end_user
+from bigur.auth.config import config
 from bigur.auth.oauth2.exceptions import (OAuth2FatalError,
                                           OAuth2RedirectionError)
+from bigur.auth.oauth2.context import Context
 from bigur.auth.oauth2.request import OAuth2Request
 from bigur.auth.oauth2.response import OAuth2Response, JSONResponse
 from bigur.auth.utils import asdict
@@ -24,35 +26,46 @@ logger = getLogger(__name__)
 
 class OAuth2Handler(View):
 
-    __request_class__: OAuth2Request
-    __get_stream__: Callable[[], Observable]
+    def get_request_class(self, params: MultiDict) -> Type:
+        raise NotImplementedError('Method must be implemented in child class')
 
-    async def handle(self, params: MultiDictProxy) -> Response:
+    def create_stream(self, context: Context) -> Observable:
+        raise NotImplementedError('Method must be implemented in child class')
+
+    async def handle(self, params: MultiDict) -> Response:
         http_request = self.request
-        http_request['params'] = params
 
-        await authenticate_end_user(http_request)
+        # Authenticate client
+        client = await authenticate_client(http_request, params)
 
-        app = http_request.app
-        kwargs = {
-            'owner': http_request['user'],
-            'jwt_keys': app['jwt_keys'],
-            'config': app['config']
-        }
-        request_fields = {f.name for f in fields(self.__request_class__)}
+        # Authenticate end user
+        user = await authenticate_end_user(http_request, params)
+
+        # Get request class
+        request_class = self.get_request_class(params)
+
+        # Create request
+        kwargs = {}
+        request_fields = {f.name for f in fields(request_class)}
         for k, v in params.items():
             if k in request_fields:
                 kwargs[k] = v
+        oauth2_request = request_class(**kwargs)
+        context = Context(
+            client=client,
+            owner=user,
+            http_request=http_request,
+            http_params=params,
+            oauth2_request=oauth2_request)
 
-        oauth2_request = self.__request_class__(**kwargs)
-
+        # Prepare response
         response_params: Dict[str, Any] = {}
 
         fragment: Dict[str, str] = {}
         query: Dict[str, str] = {}
 
         try:
-            oauth2_response = await type(self).__get_stream__(oauth2_request)
+            oauth2_response = await self.create_stream(context)
 
         except Exception as exc:
             logger.error('%s: %s', type(exc), exc, exc_info=exc)
@@ -60,23 +73,23 @@ class OAuth2Handler(View):
             if isinstance(exc, OAuth2FatalError):
                 raise HTTPBadRequest(reason=str(exc)) from exc
 
-            elif isinstance(exc, OAuth2RedirectionError):
-                response_params['error'] = exc.error_code
+            if isinstance(exc, OAuth2RedirectionError):
+                response_params['error'] = exc.error_code  # pylint: disable=no-member
                 response_params['error_description'] = str(exc)
 
             else:
-                raise HTTPInternalServerError()
+                raise HTTPInternalServerError() from exc
 
         else:
             if not oauth2_response:
                 logger.error('OAuth2 response is not set')
                 raise HTTPInternalServerError()
 
-            elif not isinstance(oauth2_response, OAuth2Response):
+            if not isinstance(oauth2_response, OAuth2Response):
                 logger.error('Invalid OAuth2 response: %s', oauth2_response)
                 raise HTTPInternalServerError()
 
-            elif isinstance(oauth2_response, JSONResponse):
+            if isinstance(oauth2_response, JSONResponse):
                 return json_response(asdict(oauth2_response))
 
             response_params = asdict(oauth2_response)
@@ -111,9 +124,3 @@ class OAuth2Handler(View):
                                 urlencode(query, doseq=True),
                                 urlencode(fragment, doseq=True)))
             })
-
-    async def get(self) -> Response:
-        return await self.handle(self.request.query)
-
-    async def post(self) -> Response:
-        return await self.handle(await self.request.post())

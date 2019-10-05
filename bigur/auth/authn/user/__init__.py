@@ -6,6 +6,7 @@ from base64 import urlsafe_b64decode
 from logging import getLogger
 
 from aiohttp.web import Request
+from multidict import MultiDict
 
 from .base import decrypt
 from .oidc import OpenIDConnect
@@ -16,7 +17,7 @@ from .token import Token
 logger = getLogger(__name__)
 
 
-async def authenticate_end_user(request: Request) -> Request:
+async def authenticate_end_user(request: Request, params: MultiDict) -> Request:
     '''Do user authentication. Returns nothing if it passed
     and raises exception if authentication not passed.'''
     logger.debug('Authenticating of end user')
@@ -42,14 +43,14 @@ async def authenticate_end_user(request: Request) -> Request:
 
         handler = None
 
-        logger.debug('Request params: %s', request['params'])
+        logger.debug('Request params: %s', params)
 
         if 'Authorization' in request.headers:
             logger.debug('Using token authn method')
             handler = Token(request)
 
-        elif 'acr_values' in request['params']:
-            for acr in request['params']['acr_values'].split(' '):
+        elif 'acr_values' in params:
+            for acr in params['acr_values'].split(' '):
                 if acr.startswith('idp:'):
                     logger.debug('Using OpenID Connect authn method')
                     handler = OpenIDConnect(request)
@@ -59,7 +60,7 @@ async def authenticate_end_user(request: Request) -> Request:
             logger.debug('Using login/password authn method')
             handler = UserPass(request)
 
-        user_id = await handler.authenticate()
+        user_id = await handler.authenticate(params)
 
     request['user'] = user_id
 

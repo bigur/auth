@@ -7,12 +7,12 @@ from dataclasses import dataclass
 from rx import Observable, just
 from rx import operators as op
 
-from bigur.auth.oauth2.request import BaseRequest
+from bigur.auth.oauth2.request import OAuth2Request
 from bigur.auth.oauth2.response import JSONResponse
 
 
 @dataclass
-class UserInfoRequest(BaseRequest):
+class UserInfoRequest(OAuth2Request):
     owner: str
 
 
