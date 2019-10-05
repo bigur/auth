@@ -3,7 +3,7 @@ __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from bigur.auth.model.base import Object, PasswordMixin
 
@@ -18,7 +18,7 @@ class ClientMixin(Object):
     client_type: str
 
     #: Id of client's owner (:class:`~bigur.auth.model.user.User`).
-    user_id: str
+    user_id: Union[str, int]
 
     #: Client title.
     title: str
