@@ -10,6 +10,9 @@ I really appreciate your contribution in project.
 
 ## Features
 
+- Client authentication
+  - [ ] Login & password authentication
+  - [ ] HTTP Basic authentication
 - End user registration & authentication
   - User registration
     - [X] Via web-form
