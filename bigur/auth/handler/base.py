@@ -35,11 +35,11 @@ class OAuth2Handler(View):
     async def handle(self, params: MultiDict) -> Response:
         http_request = self.request
 
-        # Authenticate client
-        client = await authenticate_client(http_request, params)
-
         # Authenticate end user
         user = await authenticate_end_user(http_request, params)
+
+        # Authenticate client
+        client = await authenticate_client(http_request, params)
 
         # Get request class
         request_class = self.get_request_class(params)
