@@ -6,12 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Union
 
 
-class AbstractUser(ABC):
-
-    @abstractmethod
-    def get_id(self) -> Optional[Union[int, str]]:
-        '''Returns user's id.'''
-        raise NotImplementedError
+class PasswordMixin(ABC):
 
     @abstractmethod
     def set_password(self, password: str) -> None:
@@ -20,6 +15,17 @@ class AbstractUser(ABC):
     @abstractmethod
     def verify_password(self, password: str) -> bool:
         raise NotImplementedError
+
+
+class AbstractObject(ABC):
+
+    @abstractmethod
+    def get_id(self) -> Optional[Union[int, str]]:
+        '''Returns user's id.'''
+        raise NotImplementedError
+
+
+class AbstractUser(PasswordMixin, AbstractObject):
 
     @abstractmethod
     def add_oidc_account(self, provider_id: str, subject: str) -> None:
@@ -30,15 +36,15 @@ class AbstractUser(ABC):
         raise NotImplementedError
 
 
-class AbstractClient(ABC):
+# pylint: disable=abstract-method
+class AbstractClient(PasswordMixin, AbstractObject):
 
     @abstractmethod
-    def get_id(self) -> Optional[Union[int, str]]:
-        '''Returns client's id.'''
+    def check_redirect_uri(self, uri: str) -> bool:
         raise NotImplementedError
 
 
-class AbstractProvider(ABC):
+class AbstractProvider(AbstractObject):
 
     @abstractmethod
     def get_id(self) -> Optional[Union[int, str]]:
