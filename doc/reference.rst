@@ -67,3 +67,16 @@ OAuth2 features
 
 OpenID Connect features
 -----------------------
+
+Model
+-----
+.. automodule:: bigur.auth.model
+.. automodule:: bigur.auth.model.base
+
+Client
+~~~~~~
+.. automodule:: bigur.auth.model.client
+
+User
+~~~~
+.. automodule:: bigur.auth.model.user

@@ -173,3 +173,10 @@ intersphinx_mapping = {
     'rxpy': ('https://rxpy.readthedocs.io/en/latest/', None),
     'aiohttp': ('https://aiohttp.readthedocs.io/en/stable/', None),
 }
+
+autodoc_member_order = 'bysource'
+autodoc_default_flags = [
+    'members',
+    'undoc-members',
+    'show-inheritance',
+]
