@@ -9,8 +9,10 @@ from pytest import fixture
 # pylint: disable=unused-import
 from aiohttp.pytest_plugin import aiohttp_client  # noqa
 
+# pylint: disable=redefined-outer-name,unused-argument
+
 logger = getLogger(__name__)
-logger.setLevel(INFO)
+logger.setLevel(DEBUG)
 
 
 # Main loop
@@ -77,7 +79,9 @@ def config():
 def store():
     logger.debug('Creating store')
     from bigur.auth.store import Memory
-    return Memory()
+    from bigur.auth.store import store
+    store.set_store(Memory())
+    return store
 
 
 # Cookie key
@@ -93,6 +97,7 @@ def cookie_key():
 def app(loop, config, store, jwt_key, cookie_key):
     logger.debug('Creating application')
     from os.path import dirname, normpath
+    from warnings import warn
     from aiohttp.web import Application
     from aiohttp_jinja2 import setup as jinja_setup
     from jinja2 import FileSystemLoader
@@ -100,13 +105,31 @@ def app(loop, config, store, jwt_key, cookie_key):
     from bigur.auth.middlewares import session
     app = Application(middlewares=[session])
     app['config'] = config
-    app['store'] = store
     app['jwt_keys'] = [jwt_key]
     app['cookie_key'] = cookie_key
     app['scheduler'] = AsyncIOScheduler(loop)
     app['provider'] = {}
     templates = normpath(dirname(__file__) + '/../templates')
     jinja_setup(app, loader=FileSystemLoader(templates))
+
+    class WarnWrapper:
+
+        def __getattr__(self, name):
+            warn(
+                'Use of app[\'store\'] is depricated',
+                DeprecationWarning,
+                stacklevel=2)
+            return getattr(store, name)
+
+        def __setattr__(self, name, value):
+            warn(
+                'Use of app[\'store\'] is depricated',
+                DeprecationWarning,
+                stacklevel=2)
+            return setattr(store, name, value)
+
+    app['store'] = WarnWrapper()
+
     return app
 
 
@@ -122,7 +145,7 @@ def authn_userpass(app):
 async def user(store):
     logger.debug('Creating new user')
     from bigur.auth.model import User
-    yield await store.users.put(User('admin', '123'))
+    yield await store.users.put(User(username='admin', password='123'))
 
 
 @fixture(scope='function')
@@ -130,11 +153,16 @@ async def client(store, user):
     logger.debug('Creating client')
     from bigur.auth.model import Client
     yield await store.clients.put(
-        Client('Test web client', user.id, 'password'))
+        Client(
+            client_type='confidential',
+            user_id=user.id,
+            title='Test web client',
+            password='123',
+            redirect_uris=['http://localhost/feedback']))
 
 
-@fixture
-def token(config, user, client, scope='function'):
+@fixture(scope='function')
+def token(config, user, client):
     logger.debug('Creating id_token')
     from time import time
     from bigur.auth.oidc.grant.implicit import IDToken
@@ -187,3 +215,40 @@ async def login(cli, user):
         },
         allow_redirects=False)
     yield response
+
+
+# Stub endpoint
+@fixture(scope='function')
+async def stub_endpoint(app):
+    from dataclasses import dataclass
+    from typing import Optional
+    from rx import return_value
+    from rx import operators as op
+    from bigur.auth.handler.base import OAuth2Handler
+    from bigur.auth.oauth2.request import OAuth2Request
+    from bigur.auth.oauth2.response import OAuth2Response
+
+    @dataclass
+    class StubRequest(OAuth2Request):
+        redirect_uri: Optional[str] = None
+
+    @dataclass
+    class StubResponse(OAuth2Response):
+        test: Optional[str] = None
+
+    def create_stub_stream(context):
+        return return_value(context).pipe(
+            op.map(lambda x: StubResponse(test='passed')))
+
+    class StubHandler(OAuth2Handler):
+
+        def get_request_class(self, params):
+            return StubRequest
+
+        def create_stream(self, context):
+            return create_stub_stream(context)
+
+        async def post(self):
+            return await self.handle(await self.request.post())
+
+    app.router.add_route('*', '/auth/stub', StubHandler)
