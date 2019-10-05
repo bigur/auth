@@ -16,6 +16,10 @@ class PasswordMixin(ABC):
     def verify_password(self, password: str) -> bool:
         raise NotImplementedError
 
+    @abstractmethod
+    def has_password(self) -> bool:
+        raise NotImplementedError
+
 
 class AbstractObject(ABC):
 

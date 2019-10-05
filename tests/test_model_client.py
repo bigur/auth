@@ -68,3 +68,18 @@ class TestModelClient(object):
         client.redirect_uris = ['http://localhost/back', 'https://bigur.com']
         assert client.check_redirect_uri('http://localhost/back')
         assert not client.check_redirect_uri('https://gmail.com/')
+
+    @mark.asyncio
+    async def test_has_password(self, user):
+        client = Client(
+            client_type='public',
+            title='Test',
+            user_id=user.id,
+        )
+        assert not client.has_password()
+
+        client.set_password('123')
+        assert client.has_password()
+
+        client.set_password(None)
+        assert not client.has_password()

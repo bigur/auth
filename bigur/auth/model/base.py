@@ -44,10 +44,17 @@ class PasswordMixin:
         return sha512((password + salt).encode('utf-8')).hexdigest()
 
     def set_password(self, password: str):
-        self.salt = uuid4().hex
-        self.crypt = self._get_hash(self.salt, password)
+        if password is None:
+            self.salt = None
+            self.crypt = None
+        else:
+            self.salt = uuid4().hex
+            self.crypt = self._get_hash(self.salt, password)
 
     def verify_password(self, password: str) -> bool:
         if self.salt and self.crypt:
             return self.crypt == self._get_hash(self.salt, password)
         return False
+
+    def has_password(self) -> bool:
+        return self.salt and self.crypt
