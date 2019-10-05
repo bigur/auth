@@ -7,6 +7,7 @@ from logging.config import dictConfig
 from os import urandom
 from os.path import basename
 from sys import argv
+from warnings import warn
 
 from aiohttp.web import Application, run_app
 from aiohttp_cors import CorsViewMixin, setup as setup_cors
@@ -19,6 +20,7 @@ from rx.scheduler.eventloop import AsyncIOScheduler
 
 from bigur.auth.config import config
 from bigur.auth.middlewares import session
+from bigur.auth.store import store
 from bigur.auth.utils import import_class
 
 # Setup command line args
@@ -116,7 +118,27 @@ if not app['jwt_keys']:
 # Initialize store
 store_class = import_class(config.get('store.class'))
 store_config = config.get('store.config', {})
-app['store'] = store_class(**store_config)
+store.set_store(store_class(**store_config))
+
+
+class WarnWrapper:
+
+    def __getattr__(self, name):
+        warn(
+            'Use of app[\'store\'] is depricated',
+            DeprecationWarning,
+            stacklevel=2)
+        return getattr(store, name)
+
+    def __setattr__(self, name, value):
+        warn(
+            'Use of app[\'store\'] is depricated',
+            DeprecationWarning,
+            stacklevel=2)
+        return setattr(store, name, value)
+
+
+app['store'] = WarnWrapper()
 
 # Create rx scheduler
 app['scheduler'] = AsyncIOScheduler(get_event_loop())
