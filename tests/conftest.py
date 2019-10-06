@@ -140,41 +140,6 @@ def authn_userpass(app):
     return app.router.add_route('*', '/auth/login', UserPass)
 
 
-# Entities
-@fixture(scope='function')
-async def user(store):
-    logger.debug('Creating new user')
-    from bigur.auth.model import User
-    yield await store.users.put(User(username='admin', password='123'))
-
-
-@fixture(scope='function')
-async def client(store, user):
-    logger.debug('Creating client')
-    from bigur.auth.model import Client
-    yield await store.clients.put(
-        Client(
-            client_type='confidential',
-            user_id=user.id,
-            title='Test web client',
-            password='123',
-            redirect_uris=['http://localhost/feedback']))
-
-
-@fixture(scope='function')
-def token(config, user, client):
-    logger.debug('Creating id_token')
-    from time import time
-    from bigur.auth.oidc.grant.implicit import IDToken
-    return IDToken(
-        iss=config.get('oidc.iss'),
-        sub=str(user.id),
-        aud=str(client.id),
-        nonce='test nonce',
-        iat=int(time()),
-        exp=int(time()) + 600)
-
-
 # Client
 @fixture(scope='function')
 async def cookie_jar():
@@ -189,6 +154,11 @@ def cli(loop, app, cookie_jar, aiohttp_client):  # noqa
     return loop.run_until_complete(aiohttp_client(app, cookie_jar=cookie_jar))
 
 
+@fixture(scope='function')
+def redirect_uri(cli):
+    return 'http://localhost:{}/feedback'.format(cli.port)
+
+
 @fixture(scope='module')
 def decode_token(jwt_key):
     from cryptography.hazmat.primitives.serialization import (Encoding,
@@ -201,6 +171,41 @@ def decode_token(jwt_key):
         return jwt_decode(token, public_bytes, algorithms=['RS256'], **kwargs)
 
     return decode
+
+
+# Entities
+@fixture(scope='function')
+async def user(store):
+    logger.debug('Creating new user')
+    from bigur.auth.model import User
+    yield await store.users.put(User(username='admin', password='123'))
+
+
+@fixture(scope='function')
+async def client(store, user, redirect_uri):
+    logger.debug('Creating client')
+    from bigur.auth.model import Client
+    yield await store.clients.put(
+        Client(
+            client_type='confidential',
+            user_id=user.id,
+            title='Test web client',
+            password='123',
+            redirect_uris=[redirect_uri]))
+
+
+@fixture(scope='function')
+def token(config, user, client):
+    logger.debug('Creating id_token')
+    from time import time
+    from bigur.auth.oidc.grant.implicit import IDToken
+    return IDToken(
+        iss=config.get('oidc.iss'),
+        sub=str(user.id),
+        aud=str(client.id),
+        nonce='test nonce',
+        iat=int(time()),
+        exp=int(time()) + 600)
 
 
 # Queries

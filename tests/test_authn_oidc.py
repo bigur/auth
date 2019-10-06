@@ -18,6 +18,8 @@ from bigur.auth.handler.base import OAuth2Handler
 
 # from bigur.auth.oauth2.endpoint import Endpoint
 
+# pylint: disable=unused-argument,redefined-outer-name
+
 
 class ProviderOpenIDConfigHandler(View):
 
@@ -123,7 +125,7 @@ class TestOIDCAuthn:
     '''Test authentication via third party oidc'''
 
     @mark.asyncio
-    async def test_redirect_to_provider(self, app, client, authn_oidc, cli):
+    async def test_redirect_to_provider(self, app, authn_oidc, cli, client):
         response = await cli.get(
             '/auth/authorize',
             params={
@@ -172,8 +174,15 @@ class TestOIDCAuthn:
         } == state['p']
 
     @mark.asyncio
-    async def test_redirect_from_provider(self, app, client, user, token,
-                                          authn_oidc, cli):
+    async def test_redirect_from_provider(
+            self,
+            app,
+            authn_oidc,
+            cli,
+            user,
+            client,
+            token,
+    ):
         app['provider']['token'] = token
         state = {
             'n': 'test nonce',

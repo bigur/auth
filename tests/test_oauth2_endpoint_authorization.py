@@ -19,13 +19,20 @@ async def auth_endpoint(app, authn_userpass):
 class TestAuthorizationEndpoint:
 
     @mark.asyncio
-    async def test_fragment_in_query(self, auth_endpoint, cli, login, client):
+    async def test_fragment_in_query(
+            self,
+            auth_endpoint,
+            cli,
+            login,
+            client,
+            redirect_uri,
+    ):
         response = await cli.get(
             '/auth/authorize?{}#response_type=code'.format(
                 urlencode({
                     'client_id': client.id,
                     'client_secret': '123',
-                    'redirect_uri': '/response',
+                    'redirect_uri': redirect_uri,
                 })),
             allow_redirects=False)
 
@@ -39,13 +46,20 @@ class TestAuthorizationEndpoint:
         ])
 
     @mark.asyncio
-    async def test_get_post_request(self, auth_endpoint, cli, login, client):
+    async def test_get_post_request(
+            self,
+            auth_endpoint,
+            cli,
+            login,
+            client,
+            redirect_uri,
+    ):
         response = await cli.post(
             '/auth/authorize?response_type=code',
             data={
                 'client_id': client.id,
                 'client_secret': '123',
-                'redirect_uri': '/response',
+                'redirect_uri': redirect_uri,
             },
             allow_redirects=False)
 
@@ -56,13 +70,20 @@ class TestAuthorizationEndpoint:
         assert query['code']
 
     @mark.asyncio
-    async def test_miss_response_type(self, auth_endpoint, cli, login, client):
+    async def test_miss_response_type(
+            self,
+            auth_endpoint,
+            cli,
+            login,
+            client,
+            redirect_uri,
+    ):
         response = await cli.post(
             '/auth/authorize',
             data={
                 'client_id': client.id,
                 'client_secret': '123',
-                'redirect_uri': '/response',
+                'redirect_uri': redirect_uri,
             },
             allow_redirects=False)
 
@@ -71,9 +92,9 @@ class TestAuthorizationEndpoint:
 
         parsed = urlparse(response.headers['Location'])
 
-        assert parsed.scheme == ''
-        assert parsed.netloc == ''
-        assert parsed.path == '/response'
+        assert parsed.scheme == 'http'
+        assert parsed.netloc == 'localhost:{}'.format(cli.port)
+        assert parsed.path == '/feedback'
         assert parsed.query == ''
         assert parsed.fragment
 
@@ -92,6 +113,7 @@ class TestAuthorizationEndpoint:
             cli,
             login,
             client,
+            redirect_uri,
     ):
         response = await cli.post(
             '/auth/authorize',
@@ -99,7 +121,7 @@ class TestAuthorizationEndpoint:
                 'client_id': client.id,
                 'client_secret': '123',
                 'response_type': 'invalid',
-                'redirect_uri': '/response',
+                'redirect_uri': redirect_uri,
             },
             allow_redirects=False)
 
@@ -108,9 +130,9 @@ class TestAuthorizationEndpoint:
 
         parsed = urlparse(response.headers['Location'])
 
-        assert parsed.scheme == ''
-        assert parsed.netloc == ''
-        assert parsed.path == '/response'
+        assert parsed.scheme == 'http'
+        assert parsed.netloc == 'localhost:{}'.format(cli.port)
+        assert parsed.path == '/feedback'
         assert parsed.query == ''
         assert parsed.fragment
 
