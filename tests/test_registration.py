@@ -18,7 +18,7 @@ logger = getLogger(__name__)
 @fixture(scope='function')
 def reg_endpoint(app):
     logger.debug('Add registration route')
-    from bigur.auth.authn import Registration
+    from bigur.auth.authn.user import Registration
     return app.router.add_route('*', '/auth/registration', Registration)
 
 
