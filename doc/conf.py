@@ -169,9 +169,10 @@ epub_exclude_files = ['search.html']
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
+    'aiohttp': ('https://aiohttp.readthedocs.io/en/stable/', None),
+    'multidict': ('https://multidict.readthedocs.io/en/stable/', None),
     'python': ('https://docs.python.org/', None),
     'rxpy': ('https://rxpy.readthedocs.io/en/latest/', None),
-    'aiohttp': ('https://aiohttp.readthedocs.io/en/stable/', None),
 }
 
 autodoc_member_order = 'bysource'
