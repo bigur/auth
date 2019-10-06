@@ -31,7 +31,7 @@ I really appreciate your contribution in project.
     - [ ] Implicit grant
     - [ ] Resource Owner Password Credentials Grant
     - [ ] Client Credentials Grant
-[ ] OpenID Connect features
+- [ ] OpenID Connect features
 - Database engines
   - [X] Memory (for tests, all data will be lost after restart)
   - [ ] MongoDB
