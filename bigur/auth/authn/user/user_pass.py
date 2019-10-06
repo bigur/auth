@@ -11,6 +11,7 @@ from aiohttp.web_exceptions import (HTTPBadRequest, HTTPSeeOther)
 from aiohttp_jinja2 import render_template
 from multidict import MultiDict
 
+from bigur.auth.store import store
 from bigur.auth.utils import choice_content_type, parse_accept
 
 from bigur.auth.authn.user.base import AuthN
@@ -103,9 +104,9 @@ class UserPass(AuthN):
             logger.debug('Try to find user %s in store', username)
 
             try:
-                user = self.request.app['store'].users.get_by_username(username)
+                user = store.users.get_by_username(username)
             except KeyError:
-                logger.warning('User {} not found'.format(username))
+                logger.warning('User %s not found', username)
                 error = 'bigur_invalid_login'
                 error_description = 'Invalid login or password'
             else:
@@ -133,8 +134,7 @@ class UserPass(AuthN):
 
                     return response
 
-                logger.warning(
-                    'Password is incorrect for user {}'.format(username))
+                logger.warning('Password is incorrect for user %s', username)
                 error = 'bigur_invalid_login'
                 error_description = 'Invalid login or password'
 
