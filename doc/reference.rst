@@ -64,6 +64,8 @@ OpenIDConnect handlers
 
 OAuth2 features
 ---------------
+.. automodule:: bigur.auth.oauth2.validators
+.. automodule:: bigur.auth.oauth2.validators.response_type
 
 OpenID Connect features
 -----------------------
