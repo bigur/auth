@@ -15,12 +15,10 @@ class DatabaseProxy:
     def set_store(self, instance):
         self._store = instance
 
-    def __getattribute__(self, name):
-        if name in ('_store', 'set_store'):
-            return super().__getattribute__(name)
+    def __getattr__(self, name):
         if not self._store:
             raise ValueError('Store not initialized')
-        return self._store.__getattribute__(name)
+        return getattr(self._store, name)
 
     def __setattr__(self, name, value):
         if name == '_store':
@@ -28,7 +26,7 @@ class DatabaseProxy:
         elif not self._store:
             raise ValueError('Store not initialized')
         else:
-            self._store.__setattr__(name, value)
+            setattr(self._store, name, value)
 
 
 store = DatabaseProxy()
