@@ -35,4 +35,6 @@ class AuthorizationHandler(OAuth2Handler):
         return await self.handle(self.request.query)
 
     async def post(self) -> HTTPResponse:
-        return await self.handle(await self.request.post())
+        params: MultiDict = self.request.query.copy()
+        params.update(await self.request.post())
+        return await self.handle(params)
