@@ -4,20 +4,18 @@ __licence__ = 'For license information see LICENSE'
 
 from dataclasses import fields
 from logging import getLogger
-from typing import Any, Callable, Dict, Type, cast
+from typing import Any, Dict, Type
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
-from aiohttp.web import Request, Response, View, json_response
+from aiohttp.web import Response as HTTPResponse, View, json_response
 from aiohttp.web_exceptions import (HTTPBadRequest, HTTPInternalServerError)
 from multidict import MultiDict
 from rx import Observable
 
 from bigur.auth.authn import authenticate_client, authenticate_end_user
-from bigur.auth.config import config
 from bigur.auth.oauth2.exceptions import (OAuth2FatalError,
                                           OAuth2RedirectionError)
 from bigur.auth.oauth2.context import Context
-from bigur.auth.oauth2.request import OAuth2Request
 from bigur.auth.oauth2.response import OAuth2Response, JSONResponse
 from bigur.auth.utils import asdict
 
@@ -32,8 +30,15 @@ class OAuth2Handler(View):
     def create_stream(self, context: Context) -> Observable:
         raise NotImplementedError('Method must be implemented in child class')
 
-    async def handle(self, params: MultiDict) -> Response:
+    async def handle(self, params: MultiDict) -> HTTPResponse:
         http_request = self.request
+
+        # Rebuild parameters without value, as in RFC 6794 sec. 3.1
+        new_params = MultiDict()
+        for k, v in params.items():
+            if v:
+                new_params.add(k, v)
+        params = new_params
 
         # Authenticate end user
         user = await authenticate_end_user(http_request, params)
@@ -67,7 +72,7 @@ class OAuth2Handler(View):
         try:
             oauth2_response = await self.create_stream(context)
 
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             logger.error('%s: %s', type(exc), exc, exc_info=exc)
 
             if isinstance(exc, OAuth2FatalError):
@@ -116,7 +121,7 @@ class OAuth2Handler(View):
         fragment.update(parse_qs(url.fragment))
 
         # Create response
-        return Response(
+        return HTTPResponse(
             status=303,
             headers={
                 'Location':
