@@ -12,6 +12,7 @@ from bigur.auth.handler.oauth2 import AuthorizationHandler, TokenHandler
 
 # TODO: The authorization server MAY fully or partially ignore the scope
 #       requested by the client
+# TODO: Not return scopes if identical with request's
 
 
 @fixture
@@ -193,6 +194,77 @@ class TestAuthorizationCodeGrant(object):
         assert set(query['foo']) == {'bar'}
 
     @mark.asyncio
+    async def test_state(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            redirect_uri,
+    ):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'redirect_uri': redirect_uri,
+                'response_type': 'code',
+                'client_id': client.id,
+                'client_secret': '123',
+                'state': 'please return it'
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        query = parse_qs(urlparse(response.headers['Location']).query)
+        fragment = parse_qs(urlparse(response.headers['Location']).fragment)
+        assert set(query) == set()
+        assert set(fragment) == {'code', 'state'}
+
+    @mark.asyncio
+    async def test_return_code(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            redirect_uri,
+            store,
+    ):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'response_type': 'code',
+                'client_id': client.id,
+                'client_secret': '123',
+                'state': 'smthng',
+                'redirect_uri': redirect_uri,
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+
+        parsed = urlparse(response.headers['Location'])
+
+        assert parsed.scheme == 'http'
+        assert parsed.netloc == 'localhost:{}'.format(cli.port)
+        assert parsed.path == '/feedback'
+
+        query = parse_qs(parsed.query)
+        assert set(query) == set()
+
+        fragment = parse_qs(parsed.fragment)
+        assert set(fragment) == {'code', 'state'}
+
+        found = False
+        # pylint: disable=protected-access
+        for code in store.access_codes._db.values():
+            if fragment['code'][0] == code.code:
+                found = True
+                break
+        assert found
+
+    @mark.asyncio
     async def test_default_scopes(self):
         '''Scope not present in request, default scopes
         returned.'''
@@ -208,37 +280,3 @@ class TestAuthorizationCodeGrant(object):
         '''Scope not present in request, but no default
         scopes in system.'''
         raise NotImplementedError
-
-    @mark.asyncio
-    async def test_state(self):
-        '''Copy state from request and return it.'''
-        raise NotImplementedError
-
-    @mark.asyncio
-    async def test_return_code(self, handlers, cli, user, login, client):
-        response = await cli.post(
-            '/auth/authorize',
-            data={
-                'response_type': 'code',
-                'client_id': client.id,
-                'client_secret': '123',
-                'state': 'smthng',
-                'redirect_uri': '/response',
-            },
-            allow_redirects=False)
-
-        assert response.status == 303
-
-        parsed = urlparse(response.headers['Location'])
-
-        assert parsed.scheme == ''
-        assert parsed.netloc == ''
-        assert parsed.path == '/response'
-        assert parsed.query == ''
-        assert parsed.fragment
-
-        query = parse_qs(parsed.fragment)
-        assert {'code', 'state'} == set(query)
-
-        assert query['code']
-        assert query['state'] == ['smthng']

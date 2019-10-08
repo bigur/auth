@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from logging import getLogger
 from typing import Optional, Set
 
+from bigur.auth.store import store
+
 from bigur.auth.oauth2.context import Context
 from bigur.auth.oauth2.request import OAuth2Request
 from bigur.auth.oauth2.response import OAuth2Response
@@ -44,9 +46,9 @@ class TokenResponse(OAuth2Response):
 
 async def authorization_code_grant(
         context: Context) -> AuthorizationCodeResponse:
-    logger.warning('Authorization code grant stub')
+    access_code = await store.access_codes.create()
     return AuthorizationCodeResponse(
-        code='stub', state=context.oauth2_request.state)
+        code=access_code.code, state=context.oauth2_request.state)
 
 
 async def get_token_by_code(context: Context) -> AuthorizationCodeResponse:
