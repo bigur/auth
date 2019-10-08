@@ -52,6 +52,10 @@ class AbstractScope(AbstractObject):
     pass
 
 
+class AbstractAccessCode(AbstractObject):
+    pass
+
+
 class AbstractProvider(AbstractObject):
 
     @abstractmethod

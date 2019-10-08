@@ -53,11 +53,17 @@ class ScopesCollection(Collection[T, K]):
     pass
 
 
+class AccessCodeCollection(Collection[T, K]):
+    pass
+
+
 class Store(ABC):
 
     providers: ProvidersCollection
     users: UsersCollection
     scopes: ScopesCollection
+    clients: ClientsCollection
+    access_codes: AccessCodeCollection
 
     @abstractmethod
     def __init__(self):

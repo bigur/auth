@@ -6,6 +6,7 @@ __licence__ = 'For license information see LICENSE'
 
 from .base import Object
 
+from .access_code import AccessCode
 from .client import Client
 from .provider import Provider
 from .scope import Scope

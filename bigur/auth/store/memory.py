@@ -5,7 +5,15 @@ __licence__ = 'For license information see LICENSE'
 from typing import Any, Dict
 from uuid import uuid4
 
-from bigur.auth.model import Object, Provider, User, Human, Client, Scope
+from bigur.auth.model import (
+    Object,
+    Provider,
+    User,
+    Human,
+    Client,
+    Scope,
+    AccessCode,
+)
 from bigur.auth.store import abc
 
 
@@ -67,6 +75,7 @@ class ClientsCollection(Collection, abc.ClientsCollection[Client, str]):
     async def create(self, **kwargs) -> Client:
         client = Client(**kwargs)
         await self.put(client)
+        return client
 
 
 class ScopesCollection(Collection, abc.ClientsCollection[Scope, str]):
@@ -74,6 +83,15 @@ class ScopesCollection(Collection, abc.ClientsCollection[Scope, str]):
     async def create(self, **kwargs) -> Scope:
         scope = Scope(**kwargs)
         await self.put(scope)
+        return scope
+
+
+class AccessCodeCollection(Collection, abc.AccessCodeCollection[Scope, str]):
+
+    async def create(self, **kwargs) -> AccessCode:
+        code = AccessCode(**kwargs)
+        await self.put(code)
+        return code
 
 
 class Memory(abc.Store):
@@ -83,3 +101,4 @@ class Memory(abc.Store):
         self.users = UsersCollection(self)
         self.clients = ClientsCollection(self)
         self.scopes = ScopesCollection(self)
+        self.access_codes = AccessCodeCollection(self)
