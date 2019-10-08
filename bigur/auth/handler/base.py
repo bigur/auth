@@ -3,8 +3,9 @@ __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
 from dataclasses import fields
+from collections import defaultdict
 from logging import getLogger
-from typing import Any, Dict, Type
+from typing import Any, Dict, List, Type
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
 from aiohttp.web import Response as HTTPResponse, View, json_response
@@ -66,8 +67,8 @@ class OAuth2Handler(View):
         # Prepare response
         response_params: Dict[str, Any] = {}
 
-        fragment: Dict[str, str] = {}
-        query: Dict[str, str] = {}
+        fragment: Dict[str, List[str]] = defaultdict(list)
+        query: Dict[str, List[str]] = defaultdict(list)
 
         try:
             oauth2_response = await self.create_stream(context)
@@ -98,18 +99,21 @@ class OAuth2Handler(View):
                 return json_response(asdict(oauth2_response))
 
             response_params = asdict(oauth2_response)
-            logger.debug('Response params is %s', response_params)
 
         # Check if OpenID Connect's response mode is set
+        response_part: Dict[str, List[str]]
         response_mode = getattr(oauth2_request, 'response_mode', 'fragment')
 
         if response_mode == 'query':
-            query.update(response_params)
+            response_part = query
         elif response_mode is None or response_mode == 'fragment':
-            fragment.update(response_params)
+            response_part = fragment
         else:
             logger.warning('Response mode %s not supported', response_mode)
             raise HTTPBadRequest(reason='Response mode not supported')
+
+        for k, v in response_params.items():
+            response_part[k].append(str(v))
 
         # Process redirect URI
         if oauth2_request.redirect_uri is None:
@@ -117,8 +121,29 @@ class OAuth2Handler(View):
             raise HTTPBadRequest(reason='Missing \'redirect_uri\' parameter')
 
         url = urlparse(oauth2_request.redirect_uri)
-        query.update(parse_qs(url.query))
-        fragment.update(parse_qs(url.fragment))
+        for k, v in parse_qs(url.query).items():
+            query[k] += v
+
+        # Log redirect
+        logger.debug('Before: %s, %s', query, fragment)
+        mask_fields = {'code', 'access_token', 'refresh_token'}
+        log_query = {
+            key: key in mask_fields and 'xxx' or value
+            for key, value in query.items()
+        }
+        log_fragment = {
+            key: key in mask_fields and 'xxx' or value
+            for key, value in fragment.items()
+        }
+        location = urlunparse((
+            url.scheme,
+            url.netloc,
+            url.path,
+            url.params,
+            urlencode(log_query, doseq=True),
+            urlencode(log_fragment, doseq=True),
+        ))
+        logger.debug('Redirecting to: %s', location)
 
         # Create response
         return HTTPResponse(

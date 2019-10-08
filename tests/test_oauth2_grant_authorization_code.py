@@ -139,12 +139,58 @@ class TestAuthorizationCodeGrant(object):
             '400: This `redirect_uri\' value is not allowed.')
 
     @mark.asyncio
-    async def test_redirect_uri_w_query(self):
-        raise NotImplementedError
+    async def test_redirect_uri_w_query(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            redirect_uri,
+    ):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'redirect_uri': redirect_uri + '?foo=bar&foo=baz',
+                'response_type': 'code',
+                'client_id': client.id,
+                'client_secret': '123',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        query = parse_qs(urlparse(response.headers['Location']).query)
+        fragment = parse_qs(urlparse(response.headers['Location']).fragment)
+        assert set(query) == {'foo'}
+        assert set(fragment) == {'code'}
+        assert set(query['foo']) == {'bar', 'baz'}
 
     @mark.asyncio
-    async def test_redirect_uri_w_fragment(self):
-        raise NotImplementedError
+    async def test_redirect_uri_w_fragment(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            redirect_uri,
+    ):
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'redirect_uri': redirect_uri + '?foo=bar#baz=xyz',
+                'response_type': 'code',
+                'client_id': client.id,
+                'client_secret': '123',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        query = parse_qs(urlparse(response.headers['Location']).query)
+        fragment = parse_qs(urlparse(response.headers['Location']).fragment)
+        assert set(query) == {'foo'}
+        assert set(fragment) == {'code'}
+        assert set(query['foo']) == {'bar'}
 
     @mark.asyncio
     async def test_default_scopes(self):
