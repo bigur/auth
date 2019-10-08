@@ -48,6 +48,10 @@ class AbstractClient(PasswordMixin, AbstractObject):
         raise NotImplementedError
 
 
+class AbstractScope(AbstractObject):
+    pass
+
+
 class AbstractProvider(AbstractObject):
 
     @abstractmethod

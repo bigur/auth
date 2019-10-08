@@ -200,6 +200,17 @@ async def client(store, user, redirect_uri):
 
 
 @fixture(scope='function')
+async def scopes(store):
+    logger.debug('Creating scopes')
+    from bigur.auth.model import Scope
+    scopes = []
+    scopes.append(await store.scopes.put(Scope(code='openid')))
+    scopes.append(await store.scopes.put(Scope(code='email', default=True)))
+    scopes.append(await store.scopes.put(Scope(code='profile', default=True)))
+    yield scopes
+
+
+@fixture(scope='function')
 def token(config, user, client):
     logger.debug('Creating id_token')
     from time import time
