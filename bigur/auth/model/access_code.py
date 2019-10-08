@@ -13,7 +13,7 @@ from bigur.auth.model.base import Object
 @dataclass
 class AccessCode(Object, AbstractAccessCode):
     #: Code string.
-    code: str = field(default_factory=lambda: str(uuid4()))
+    code: str = field(default_factory=lambda: uuid4().hex)
 
     #: Timestamp when code generated.
     created: datetime = field(default_factory=datetime.now)
