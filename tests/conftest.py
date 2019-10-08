@@ -191,7 +191,12 @@ async def client(store, user, redirect_uri):
             user_id=user.id,
             title='Test web client',
             password='123',
-            redirect_uris=[redirect_uri]))
+            redirect_uris=[
+                redirect_uri,
+                redirect_uri + '?foo=bar',
+                redirect_uri + '?foo=bar&foo=baz',
+                redirect_uri + '?foo=bar#baz=xyz',
+            ]))
 
 
 @fixture(scope='function')
