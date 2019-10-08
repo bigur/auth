@@ -125,7 +125,6 @@ class OAuth2Handler(View):
             query[k] += v
 
         # Log redirect
-        logger.debug('Before: %s, %s', query, fragment)
         mask_fields = {'code', 'access_token', 'refresh_token'}
         log_query = {
             key: key in mask_fields and 'xxx' or value
