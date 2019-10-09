@@ -10,16 +10,9 @@ from bigur.auth.store import store
 
 from bigur.auth.oauth2.context import Context
 from bigur.auth.oauth2.request import OAuth2Request
-from bigur.auth.oauth2.response import OAuth2Response
+from bigur.auth.oauth2.response import OAuth2Response, JSONResponse
 
 logger = getLogger(__name__)
-
-
-@dataclass
-class InvalidRequest(OAuth2Request):
-    response_type: Set[str] = field(default_factory=set)
-    redirect_uri: Optional[str] = None
-    state: Optional[str] = None
 
 
 @dataclass
@@ -32,16 +25,38 @@ class AuthorizationRequest(OAuth2Request):
 
 
 @dataclass
+class InvalidAuthorizationRequest(OAuth2Request):
+    response_type: Set[str] = field(default_factory=set)
+    redirect_uri: Optional[str] = None
+    state: Optional[str] = None
+
+
+@dataclass
 class AuthorizationCodeResponse(OAuth2Response):
     code: str
     state: Optional[str] = None
 
 
 @dataclass
-class TokenResponse(OAuth2Response):
+class AccessTokenRequest(OAuth2Request):
+    grant_type: Optional[str] = None
+    code: Optional[str] = None
+    redirect_uri: Optional[str] = None
+    client_id: Optional[str] = None
+
+
+@dataclass
+class InvalidAccessTokenRequest(OAuth2Request):
+    grant_type: Optional[str] = None
+
+
+@dataclass
+class AccessTokenResponse(JSONResponse):
     access_token: Optional[str] = None
+    token_type: Optional[str] = None
+    expires_in: Optional[int] = None
     refresh_token: Optional[str] = None
-    state: Optional[str] = None
+    scope: Optional[str] = None
 
 
 async def authorization_code_grant(
@@ -51,5 +66,5 @@ async def authorization_code_grant(
         code=access_code.code, state=context.oauth2_request.state)
 
 
-async def get_token_by_code(context: Context) -> AuthorizationCodeResponse:
-    pass
+async def get_token_by_code(context: Context) -> AccessTokenResponse:
+    return AccessTokenResponse()
