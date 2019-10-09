@@ -11,13 +11,17 @@ from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
 from aiohttp.web import Response as HTTPResponse, View, json_response
 from aiohttp.web_exceptions import (HTTPException, HTTPBadRequest,
-                                    HTTPInternalServerError)
+                                    HTTPInternalServerError, HTTPUnauthorized)
 from multidict import MultiDict
 from rx import Observable
 
 from bigur.auth.authn import authenticate_client, authenticate_end_user
-from bigur.auth.oauth2.exceptions import (HTTPRequestError, OAuth2Error,
-                                          ServerError)
+from bigur.auth.oauth2.exceptions import (
+    HTTPRequestError,
+    InvalidClient,
+    OAuth2Error,
+    ServerError,
+)
 from bigur.auth.oauth2.context import Context
 from bigur.auth.oauth2.response import OAuth2Response
 from bigur.auth.utils import asdict
@@ -51,28 +55,45 @@ class OAuth2Handler(View):
             logger.error('OAuth2 response is not set')
             oauth2_response = ServerError('Internal server error.')
 
+        # Initialize respones parameters.
         response_params: Dict[str, Any] = {}
 
         if isinstance(oauth2_response, OAuth2Response):
             response_params = asdict(oauth2_response)
         elif isinstance(oauth2_response, OAuth2Error):
             class_name = type(oauth2_response).__name__
-            error_code = re_sub('(.)([A-Z][a-z]+)', r'\1_\2', class_name)
+            error_code = re_sub(
+                '([a-z0-9])([A-Z])',
+                r'\1_\2',
+                re_sub(
+                    '(.)([A-Z][a-z]+)',
+                    r'\1_\2',
+                    class_name,
+                ),
+            ).lower()
             response_params['error'] = error_code.lower()
             response_params['error_description'] = str(oauth2_response.args[0])
 
+        # Detect response mode
         response_mode = self.get_response_mode(context)
 
-        query: Dict[str, List[str]] = defaultdict(list)
-        fragment: Dict[str, List[str]] = defaultdict(list)
-
+        # Process json response
         if response_mode == 'json':
-            if isinstance(oauth2_response, OAuth2Error):
+            if isinstance(oauth2_response, InvalidClient):
+                response_status = 401
+            elif isinstance(oauth2_response, OAuth2Error):
                 response_status = 400
             else:
                 response_status = 200
             return json_response(response_params, status=response_status)
 
+        # Process 401 exceptions
+        if isinstance(oauth2_response, InvalidClient):
+            raise HTTPUnauthorized(reason=str(oauth2_response.args[0]))
+
+        # Update query and fragment parameters
+        query: Dict[str, List[str]] = defaultdict(list)
+        fragment: Dict[str, List[str]] = defaultdict(list)
         if response_mode == 'query':
             for k, v in response_params.items():
                 query[k].append(str(v))
@@ -83,12 +104,14 @@ class OAuth2Handler(View):
             logger.error('Response mode %s not supported', response_mode)
             raise HTTPInternalServerError()
 
-        # Process redirect URI
+        # Check redirect URI
+        logger.debug('Response params: %s', response_params)
         redirect_uri = getattr(context.oauth2_request, 'redirect_uri', None)
         if not redirect_uri:
             logger.error('Parameter `redirect_uri\' is not set.')
             raise HTTPInternalServerError()
 
+        # Merge query with redirect_uri's query
         url = urlparse(redirect_uri)
         for k, v in parse_qs(url.query).items():
             query[k] += v
@@ -132,6 +155,8 @@ class OAuth2Handler(View):
             if v:
                 new_params.add(k, v)
         params = new_params
+
+        logger.debug('Request params: %s', params)
 
         # Create context
         context = Context(http_request=http_request, http_params=params)

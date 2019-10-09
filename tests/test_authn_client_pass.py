@@ -90,8 +90,8 @@ class TestAutnNClientPass:
                 'client_secret': 'blah',
             },
             allow_redirects=False)
-        assert response.status == 403
-        assert await response.text() == '403: Invalid client\'s password.'
+        assert response.status == 401
+        assert await response.text() == '401: Invalid client\'s password.'
 
     @mark.asyncio
     async def test_conf_auth(
@@ -160,8 +160,8 @@ class TestAutnNClientPass:
                 'client_secret': 'bad',
             },
             allow_redirects=False)
-        assert response.status == 403
-        assert await response.text() == '403: Invalid client\'s password.'
+        assert response.status == 401
+        assert await response.text() == '401: Invalid client\'s password.'
 
     @mark.asyncio
     async def test_pub_w_p_auth(
@@ -210,8 +210,8 @@ class TestAutnNClientPass:
                 'client_secret': 'bad',
             },
             allow_redirects=False)
-        assert response.status == 403
-        assert await response.text() == '403: Invalid client\'s password.'
+        assert response.status == 401
+        assert await response.text() == '401: Invalid client\'s password.'
 
     @mark.asyncio
     async def test_pub_wo_auth(
