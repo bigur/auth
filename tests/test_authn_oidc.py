@@ -6,17 +6,15 @@ from base64 import urlsafe_b64decode, urlsafe_b64encode
 from json import dumps, loads
 from hashlib import sha1
 from re import match, DOTALL, MULTILINE
+from urllib.parse import urlparse, parse_qs
 
 from pytest import fixture, mark
-from urllib.parse import urlparse, parse_qs
 
 from aiohttp.web import View, json_response
 
 from bigur.auth.authn.user import OpenIDConnect
 from bigur.auth.authn.user.base import crypt, decrypt
 from bigur.auth.handler.base import OAuth2Handler
-
-# from bigur.auth.oauth2.endpoint import Endpoint
 
 # pylint: disable=unused-argument,redefined-outer-name
 
