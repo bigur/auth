@@ -5,19 +5,21 @@ __licence__ = 'For license information see LICENSE'
 from dataclasses import fields
 from collections import defaultdict
 from logging import getLogger
-from typing import Any, Dict, List, Type
+from re import sub as re_sub
+from typing import Any, Dict, List, Type, Union
 from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 
 from aiohttp.web import Response as HTTPResponse, View, json_response
-from aiohttp.web_exceptions import (HTTPBadRequest, HTTPInternalServerError)
+from aiohttp.web_exceptions import (HTTPException, HTTPBadRequest,
+                                    HTTPInternalServerError)
 from multidict import MultiDict
 from rx import Observable
 
 from bigur.auth.authn import authenticate_client, authenticate_end_user
-from bigur.auth.oauth2.exceptions import (OAuth2FatalError,
-                                          OAuth2RedirectionError)
+from bigur.auth.oauth2.exceptions import (HTTPRequestError, OAuth2Error,
+                                          ServerError)
 from bigur.auth.oauth2.context import Context
-from bigur.auth.oauth2.response import OAuth2Response, JSONResponse
+from bigur.auth.oauth2.response import OAuth2Response
 from bigur.auth.utils import asdict
 
 logger = getLogger(__name__)
@@ -31,96 +33,63 @@ class OAuth2Handler(View):
     def create_stream(self, context: Context) -> Observable:
         raise NotImplementedError('Method must be implemented in child class')
 
-    async def handle(self, params: MultiDict) -> HTTPResponse:
-        http_request = self.request
+    def get_response_mode(self, context: Context) -> str:
+        '''Returns string that represent mode to response on request. String
+        must be `query`, `fragment` or `json`.
 
-        # Rebuild parameters without value, as in RFC 6794 sec. 3.1
-        new_params = MultiDict()
-        for k, v in params.items():
-            if v:
-                new_params.add(k, v)
-        params = new_params
+        :returns: string with response mode.'''
+        raise NotImplementedError('Method must be implemented in child class')
 
-        # Authenticate end user
-        user = await authenticate_end_user(http_request, params)
+    def create_response(
+            self,
+            context: Context,
+            oauth2_response: Union[OAuth2Response, Exception],
+    ) -> HTTPResponse:
 
-        # Authenticate client
-        client = await authenticate_client(http_request, params)
+        if (not oauth2_response or
+                not isinstance(oauth2_response, (OAuth2Response, OAuth2Error))):
+            logger.error('OAuth2 response is not set')
+            oauth2_response = ServerError('Internal server error.')
 
-        # Get request class
-        request_class = self.get_request_class(params)
-
-        # Create request
-        kwargs = {}
-        request_fields = {f.name for f in fields(request_class)}
-        for k, v in params.items():
-            if k in request_fields:
-                kwargs[k] = v
-        oauth2_request = request_class(**kwargs)
-        context = Context(
-            client=client,
-            owner=user,
-            http_request=http_request,
-            http_params=params,
-            oauth2_request=oauth2_request)
-
-        # Prepare response
         response_params: Dict[str, Any] = {}
 
-        fragment: Dict[str, List[str]] = defaultdict(list)
-        query: Dict[str, List[str]] = defaultdict(list)
-
-        try:
-            oauth2_response = await self.create_stream(context)
-
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.error('%s: %s', type(exc), exc, exc_info=exc)
-
-            if isinstance(exc, OAuth2FatalError):
-                raise HTTPBadRequest(reason=str(exc)) from exc
-
-            if isinstance(exc, OAuth2RedirectionError):
-                response_params['error'] = exc.error_code  # pylint: disable=no-member
-                response_params['error_description'] = str(exc)
-
-            else:
-                raise HTTPInternalServerError() from exc
-
-        else:
-            if not oauth2_response:
-                logger.error('OAuth2 response is not set')
-                raise HTTPInternalServerError()
-
-            if not isinstance(oauth2_response, OAuth2Response):
-                logger.error('Invalid OAuth2 response: %s', oauth2_response)
-                raise HTTPInternalServerError()
-
-            if isinstance(oauth2_response, JSONResponse):
-                return json_response(asdict(oauth2_response))
-
+        if isinstance(oauth2_response, OAuth2Response):
             response_params = asdict(oauth2_response)
+        elif isinstance(oauth2_response, OAuth2Error):
+            class_name = type(oauth2_response).__name__
+            error_code = re_sub('(.)([A-Z][a-z]+)', r'\1_\2', class_name)
+            response_params['error'] = error_code.lower()
+            response_params['error_description'] = str(oauth2_response.args[0])
 
-        # Check if OpenID Connect's response mode is set
-        response_part: Dict[str, List[str]]
-        response_mode = getattr(oauth2_request, 'response_mode', 'fragment')
+        response_mode = self.get_response_mode(context)
+
+        query: Dict[str, List[str]] = defaultdict(list)
+        fragment: Dict[str, List[str]] = defaultdict(list)
+
+        if response_mode == 'json':
+            if isinstance(oauth2_response, OAuth2Error):
+                response_status = 400
+            else:
+                response_status = 200
+            return json_response(response_params, status=response_status)
 
         if response_mode == 'query':
-            response_part = query
-        elif response_mode is None or response_mode == 'fragment':
-            response_part = fragment
+            for k, v in response_params.items():
+                query[k].append(str(v))
+        elif response_mode == 'fragment':
+            for k, v in response_params.items():
+                fragment[k].append(str(v))
         else:
-            logger.warning('Response mode %s not supported', response_mode)
-            raise HTTPBadRequest(reason='Response mode not supported')
-
-        for k, v in response_params.items():
-            response_part[k].append(str(v))
+            logger.error('Response mode %s not supported', response_mode)
+            raise HTTPInternalServerError()
 
         # Process redirect URI
-        if oauth2_request.redirect_uri is None:
-            logger.debug('Bad request: missing redirect_uri')
-            raise HTTPBadRequest(reason='Missing \'redirect_uri\' parameter')
+        redirect_uri = getattr(context.oauth2_request, 'redirect_uri', None)
+        if not redirect_uri:
+            logger.error('Parameter `redirect_uri\' is not set.')
+            raise HTTPInternalServerError()
 
-        url = urlparse(oauth2_request.redirect_uri)
+        url = urlparse(redirect_uri)
         for k, v in parse_qs(url.query).items():
             query[k] += v
 
@@ -153,3 +122,53 @@ class OAuth2Handler(View):
                                 urlencode(query, doseq=True),
                                 urlencode(fragment, doseq=True)))
             })
+
+    async def handle(self, params: MultiDict) -> HTTPResponse:
+        http_request = self.request
+
+        # Rebuild parameters without value, as in RFC 6794 sec. 3.1
+        new_params = MultiDict()
+        for k, v in params.items():
+            if v:
+                new_params.add(k, v)
+        params = new_params
+
+        # Create context
+        context = Context(http_request=http_request, http_params=params)
+
+        try:
+            # Authenticate end user
+            context.owner = await authenticate_end_user(http_request, params)
+
+            # Authenticate client
+            context.client = await authenticate_client(http_request, params)
+
+            # Get request class
+            request_class = self.get_request_class(params)
+
+            # Create OAuth2 request
+            kwargs = {}
+            request_fields = {f.name for f in fields(request_class)}
+            for k, v in params.items():
+                if k in request_fields:
+                    kwargs[k] = v
+            context.oauth2_request = request_class(**kwargs)
+
+            # Prepare response
+            oauth2_response = await self.create_stream(context)
+
+        except HTTPException as exc:
+            return exc
+
+        except HTTPRequestError as exc:
+            raise HTTPBadRequest(reason=str(exc.args[0]))
+
+        except OAuth2Error as exc:
+            oauth2_response = exc
+
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.error('%s: %s', type(exc), exc, exc_info=exc)
+            oauth2_response = ServerError('Unexpected server error, '
+                                          'please try later.')
+
+        return self.create_response(context, oauth2_response)

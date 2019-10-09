@@ -269,6 +269,9 @@ async def stub_endpoint(app):
         def create_stream(self, context):
             return create_stub_stream(context)
 
+        def get_response_mode(self, context):
+            return 'fragment'
+
         async def post(self):
             return await self.handle(await self.request.post())
 

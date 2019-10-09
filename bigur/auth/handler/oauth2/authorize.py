@@ -13,7 +13,7 @@ from bigur.auth.oauth2.context import Context
 from bigur.auth.oauth2.endpoint import get_authorization_stream
 from bigur.auth.oauth2.grant.authorization_code import (
     AuthorizationRequest,
-    InvalidRequest,
+    InvalidAuthorizationRequest,
 )
 from bigur.auth.oauth2.grant.implicit import TokenRequest
 
@@ -26,10 +26,13 @@ class AuthorizationHandler(OAuth2Handler):
                 return AuthorizationRequest
             if params['response_type'] == 'token':
                 return TokenRequest
-        return InvalidRequest
+        return InvalidAuthorizationRequest
 
     def create_stream(self, context: Context) -> Observable:
         return get_authorization_stream(context)
+
+    def get_response_mode(self, context: Context) -> str:
+        return 'fragment'
 
     async def get(self) -> HTTPResponse:
         return await self.handle(self.request.query)
