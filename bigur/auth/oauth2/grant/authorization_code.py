@@ -10,7 +10,7 @@ from bigur.auth.store import store
 
 from bigur.auth.oauth2.context import Context
 from bigur.auth.oauth2.request import OAuth2Request
-from bigur.auth.oauth2.response import OAuth2Response, JSONResponse
+from bigur.auth.oauth2.response import OAuth2Response
 
 logger = getLogger(__name__)
 
@@ -51,7 +51,7 @@ class InvalidAccessTokenRequest(OAuth2Request):
 
 
 @dataclass
-class AccessTokenResponse(JSONResponse):
+class AccessTokenResponse(OAuth2Response):
     access_token: Optional[str] = None
     token_type: Optional[str] = None
     expires_in: Optional[int] = None

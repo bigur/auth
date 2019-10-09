@@ -8,7 +8,7 @@ from rx import Observable, just
 from rx import operators as op
 
 from bigur.auth.oauth2.request import OAuth2Request
-from bigur.auth.oauth2.response import JSONResponse
+from bigur.auth.oauth2.response import OAuth2Response
 
 
 @dataclass
@@ -17,7 +17,7 @@ class UserInfoRequest(OAuth2Request):
 
 
 @dataclass
-class UserInfoResponse(JSONResponse):
+class UserInfoResponse(OAuth2Response):
     sub: str
 
 
