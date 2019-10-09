@@ -13,8 +13,3 @@ class BaseResponse:
 @dataclass
 class OAuth2Response(BaseResponse):
     pass
-
-
-@dataclass
-class JSONResponse(BaseResponse):
-    pass
