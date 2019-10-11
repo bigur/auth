@@ -2,6 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Development management business group'
 __licence__ = 'For license information see LICENSE'
 
+from datetime import datetime
 from urllib.parse import parse_qs, urlparse
 
 from pytest import fixture, mark
@@ -13,12 +14,22 @@ from bigur.auth.handler.oauth2 import AuthorizationHandler, TokenHandler
 # TODO: The authorization server MAY fully or partially ignore the scope
 #       requested by the client
 # TODO: Not return scopes if identical with request's
+# TODO: redirect_uri in token request must be same:
+#         REQUIRED, if the "redirect_uri" parameter was included in the
+#         authorization request as described in Section 4.1.1, and their
+#         values MUST be identical.
 
 
 @fixture
-async def handlers(app, authn_userpass):
+def handlers(app, authn_userpass):
     app.router.add_route('*', '/auth/authorize', AuthorizationHandler)
     app.router.add_route('*', '/auth/token', TokenHandler)
+
+
+@fixture
+async def expired_access_code(store):
+    yield await store.access_codes.create(
+        code='test', created=datetime(1970, 1, 1), used=False)
 
 
 class TestAuthorizationCodeGrant(object):
@@ -263,6 +274,81 @@ class TestAuthorizationCodeGrant(object):
                 found = True
                 break
         assert found
+
+    @mark.asyncio
+    async def test_no_code_provided(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+    ):
+        response = await cli.post(
+            '/auth/token',
+            data={
+                'client_id': client.id,
+                'client_secret': '123',
+                'grant_type': 'authorization_code',
+            },
+            allow_redirects=False)
+
+        assert response.status == 400
+        assert await response.json() == {
+            'error': 'invalid_request',
+            'error_description': 'Parameter `code\' required.'
+        }
+
+    @mark.asyncio
+    async def test_invalid_code(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+    ):
+        response = await cli.post(
+            '/auth/token',
+            data={
+                'client_id': client.id,
+                'client_secret': '123',
+                'grant_type': 'authorization_code',
+                'code': 'not-existing'
+            },
+            allow_redirects=False)
+
+        assert response.status == 400
+        assert await response.json() == {
+            'error': 'invalid_grant',
+            'error_description': 'Invalid code provided.'
+        }
+
+    @mark.asyncio
+    async def test_expired_code(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            expired_access_code,
+    ):
+        response = await cli.post(
+            '/auth/token',
+            data={
+                'client_id': client.id,
+                'client_secret': '123',
+                'grant_type': 'authorization_code',
+                'code': 'test'
+            },
+            allow_redirects=False)
+
+        assert response.status == 400
+        assert await response.json() == {
+            'error': 'invalid_grant',
+            'error_description': 'Code expired.'
+        }
 
     @mark.asyncio
     async def test_default_scopes(self):
