@@ -18,6 +18,7 @@ from bigur.auth.handler.oauth2 import AuthorizationHandler, TokenHandler
 #         REQUIRED, if the "redirect_uri" parameter was included in the
 #         authorization request as described in Section 4.1.1, and their
 #         values MUST be identical.
+# TODO: Get token
 
 
 @fixture
@@ -159,6 +160,7 @@ class TestAuthorizationCodeGrant(object):
             login,
             client,
             redirect_uri,
+            scopes,
     ):
         response = await cli.post(
             '/auth/authorize',
@@ -186,6 +188,7 @@ class TestAuthorizationCodeGrant(object):
             login,
             client,
             redirect_uri,
+            scopes,
     ):
         response = await cli.post(
             '/auth/authorize',
@@ -205,6 +208,101 @@ class TestAuthorizationCodeGrant(object):
         assert set(query['foo']) == {'bar'}
 
     @mark.asyncio
+    async def test_invalid_scope(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            redirect_uri,
+    ):
+        '''Invalid scope required.'''
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'redirect_uri': redirect_uri,
+                'response_type': 'code',
+                'client_id': client.id,
+                'client_secret': '123',
+                'scope': 'foo',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        query = parse_qs(urlparse(response.headers['Location']).query)
+        fragment = parse_qs(urlparse(response.headers['Location']).fragment)
+        assert set(query) == set()
+        assert set(fragment) == {'error', 'error_description'}
+        assert fragment['error'] == ['invalid_scope']
+        assert (fragment['error_description'] == ['Invalid scope `foo\'.'])
+
+    @mark.asyncio
+    async def test_no_default_scopes(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            redirect_uri,
+    ):
+        '''Scope not present in request, but no default
+        scopes in system.'''
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'redirect_uri': redirect_uri,
+                'response_type': 'code',
+                'client_id': client.id,
+                'client_secret': '123',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        query = parse_qs(urlparse(response.headers['Location']).query)
+        fragment = parse_qs(urlparse(response.headers['Location']).fragment)
+        assert set(query) == set()
+        assert set(fragment) == {'error', 'error_description'}
+        assert fragment['error'] == ['invalid_scope']
+        assert (fragment['error_description'] == [
+            'No scope in request and no default scopes configured.'
+        ])
+
+    @mark.asyncio
+    async def test_default_scopes(
+            self,
+            handlers,
+            cli,
+            user,
+            login,
+            client,
+            redirect_uri,
+            scopes,
+            store,
+    ):
+        '''Scope not present in request, default scopes
+        returned.'''
+        response = await cli.post(
+            '/auth/authorize',
+            data={
+                'redirect_uri': redirect_uri,
+                'response_type': 'code',
+                'client_id': client.id,
+                'client_secret': '123',
+            },
+            allow_redirects=False)
+
+        assert response.status == 303
+        query = parse_qs(urlparse(response.headers['Location']).query)
+        fragment = parse_qs(urlparse(response.headers['Location']).fragment)
+        assert set(query) == set()
+        assert set(fragment) == {'code'}
+        code = await store.access_codes.get_by_code(fragment['code'][0])
+        assert code
+        assert set(code.scopes) == {'email', 'profile'}
+
+    @mark.asyncio
     async def test_state(
             self,
             handlers,
@@ -213,6 +311,7 @@ class TestAuthorizationCodeGrant(object):
             login,
             client,
             redirect_uri,
+            scopes,
     ):
         response = await cli.post(
             '/auth/authorize',
@@ -240,6 +339,7 @@ class TestAuthorizationCodeGrant(object):
             login,
             client,
             redirect_uri,
+            scopes,
             store,
     ):
         response = await cli.post(
@@ -349,20 +449,3 @@ class TestAuthorizationCodeGrant(object):
             'error': 'invalid_grant',
             'error_description': 'Code expired.'
         }
-
-    @mark.asyncio
-    async def test_default_scopes(self):
-        '''Scope not present in request, default scopes
-        returned.'''
-        raise NotImplementedError
-
-    @mark.asyncio
-    async def test_invalid_scope(self):
-        '''Invalid scope required.'''
-        raise NotImplementedError
-
-    @mark.asyncio
-    async def test_no_default_scopes(self):
-        '''Scope not present in request, but no default
-        scopes in system.'''
-        raise NotImplementedError

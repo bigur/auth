@@ -50,7 +50,14 @@ class ClientsCollection(Collection[T, K]):
 
 
 class ScopesCollection(Collection[T, K]):
-    pass
+
+    @abstractmethod
+    async def get_by_code(self, code: str) -> T:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_default_scopes(self) -> T:
+        raise NotImplementedError
 
 
 class AccessCodeCollection(Collection[T, K]):

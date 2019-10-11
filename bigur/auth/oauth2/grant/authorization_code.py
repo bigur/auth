@@ -20,7 +20,7 @@ class AuthorizationRequest(OAuth2Request):
     response_type: Set[str] = field(default_factory=set)
     client_id: Optional[str] = None
     redirect_uri: Optional[str] = None
-    scope: Optional[str] = None
+    scope: Set[str] = field(default_factory=set)
     state: Optional[str] = None
 
 
@@ -61,7 +61,8 @@ class AccessTokenResponse(OAuth2Response):
 
 async def authorization_code_grant(
         context: Context) -> AuthorizationCodeResponse:
-    access_code = await store.access_codes.create()
+    access_code = await store.access_codes.create(
+        scopes=context.oauth2_request.scope)
     return AuthorizationCodeResponse(
         code=access_code.code, state=context.oauth2_request.state)
 

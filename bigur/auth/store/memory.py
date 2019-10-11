@@ -2,7 +2,7 @@ __author__ = 'Gennady Kovalev <gik@bigur.ru>'
 __copyright__ = '(c) 2016-2019 Business group for development management'
 __licence__ = 'For license information see LICENSE'
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 from uuid import uuid4
 
 from bigur.auth.model import (
@@ -85,10 +85,21 @@ class ScopesCollection(Collection, abc.ClientsCollection[Scope, str]):
         await self.put(scope)
         return scope
 
+    async def get_by_code(self, code: str) -> Scope:
+        for v in self._db.values():
+            if v.code == code:
+                return v
+        raise KeyError('Scope not found.')
+
+    async def get_default_scopes(self) -> List[Scope]:
+        return [v for v in self._db.values() if v.default]
+
 
 class AccessCodeCollection(Collection, abc.AccessCodeCollection[Scope, str]):
 
     async def create(self, **kwargs) -> AccessCode:
+        if 'scopes' in kwargs and isinstance(kwargs['scopes'], set):
+            kwargs['scopes'] = list(kwargs['scopes'])
         code = AccessCode(**kwargs)
         await self.put(code)
         return code

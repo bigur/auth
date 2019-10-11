@@ -53,6 +53,7 @@ class TestAuthorizationEndpoint:
             login,
             client,
             redirect_uri,
+            scopes,
     ):
         response = await cli.post(
             '/auth/authorize?response_type=code',

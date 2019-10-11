@@ -12,7 +12,7 @@ from aiohttp.pytest_plugin import aiohttp_client  # noqa
 # pylint: disable=redefined-outer-name,unused-argument
 
 logger = getLogger(__name__)
-logger.setLevel(DEBUG)
+logger.setLevel(INFO)
 
 
 # Main loop
@@ -204,9 +204,12 @@ async def scopes(store):
     logger.debug('Creating scopes')
     from bigur.auth.model import Scope
     scopes = []
-    scopes.append(await store.scopes.put(Scope(code='openid')))
-    scopes.append(await store.scopes.put(Scope(code='email', default=True)))
-    scopes.append(await store.scopes.put(Scope(code='profile', default=True)))
+    scopes.append(await store.scopes.put(
+        Scope(code='openid', title='OpenID Connect scope')))
+    scopes.append(await store.scopes.put(
+        Scope(code='email', title='E-mail', default=True)))
+    scopes.append(await store.scopes.put(
+        Scope(code='profile', title='Profile', default=True)))
     yield scopes
 
 

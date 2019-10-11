@@ -13,6 +13,7 @@ from bigur.auth.oauth2.exceptions import InvalidRequest
 from bigur.auth.oauth2.validators import (
     validate_redirect_uri,
     validate_response_type,
+    validate_scope,
 )
 
 from bigur.auth.utils import call_async
@@ -35,4 +36,6 @@ def get_authorization_stream(context: Context) -> Observable:
     return return_value(context).pipe(
         op.flat_map(call_async(validate_redirect_uri)),
         op.flat_map(call_async(validate_response_type)),
-        op.flat_map(select_flow))
+        op.flat_map(call_async(validate_scope)),
+        op.flat_map(select_flow),
+    )
