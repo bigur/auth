@@ -21,7 +21,7 @@ class TokenHandler(OAuth2Handler):
 
     def get_request_class(self, params: MultiDict) -> Type:
         if 'grant_type' in params:
-            if params['grant_type'] == 'code':
+            if params['grant_type'] == 'authorization_code':
                 return AccessTokenRequest
         return InvalidAccessTokenRequest
 
