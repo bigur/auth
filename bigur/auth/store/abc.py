@@ -54,7 +54,10 @@ class ScopesCollection(Collection[T, K]):
 
 
 class AccessCodeCollection(Collection[T, K]):
-    pass
+
+    @abstractmethod
+    def get_by_code(self, code: str) -> T:
+        raise NotImplementedError
 
 
 class Store(ABC):

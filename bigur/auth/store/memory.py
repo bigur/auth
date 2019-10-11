@@ -93,6 +93,12 @@ class AccessCodeCollection(Collection, abc.AccessCodeCollection[Scope, str]):
         await self.put(code)
         return code
 
+    async def get_by_code(self, code: str) -> AccessCode:
+        for v in self._db.values():
+            if v.code == code:
+                return v
+        raise KeyError('Access code not found.')
+
 
 class Memory(abc.Store):
 
